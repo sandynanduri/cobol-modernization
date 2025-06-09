@@ -90,63 +90,56 @@ const HomePage: React.FC = () => {
               ))}
             </div>
 
-            {/* Main Content Area - Full Width Import Section */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Upload & Version Control Integration Section - Spans 2 columns */}
-              <div className="lg:col-span-2">
-                <Card className="bg-white/80 backdrop-blur-sm border-white/50 shadow-xl">
-                  <CardHeader>
-                    <CardTitle className="text-2xl bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
-                      Import COBOL Files
-                    </CardTitle>
-                    <CardDescription>
-                      Upload files directly or import from GitHub, Bitbucket, GitLab, or any Git repository
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    <Tabs defaultValue="upload" className="space-y-4">
-                      <TabsList className="grid w-full grid-cols-2">
-                        <TabsTrigger value="upload" className="flex items-center space-x-2">
-                          <Upload className="h-4 w-4" />
-                          <span>Upload Files</span>
-                        </TabsTrigger>
-                        <TabsTrigger value="vcs" className="flex items-center space-x-2">
-                          <GitBranch className="h-4 w-4" />
-                          <span>Import from Git</span>
-                        </TabsTrigger>
-                      </TabsList>
-                      
-                      <TabsContent value="upload">
-                        <FileUpload />
-                      </TabsContent>
-                      
-                      <TabsContent value="vcs">
-                        <VCSConnector />
-                      </TabsContent>
-                    </Tabs>
+            {/* Import COBOL Files Section - Full Width */}
+            <Card className="bg-white/80 backdrop-blur-sm border-white/50 shadow-xl">
+              <CardHeader>
+                <CardTitle className="text-2xl bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+                  Import COBOL Files
+                </CardTitle>
+                <CardDescription>
+                  Upload files directly or import from GitHub, Bitbucket, GitLab, or any Git repository
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <Tabs defaultValue="upload" className="space-y-4">
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="upload" className="flex items-center space-x-2">
+                      <Upload className="h-4 w-4" />
+                      <span>Upload Files</span>
+                    </TabsTrigger>
+                    <TabsTrigger value="vcs" className="flex items-center space-x-2">
+                      <GitBranch className="h-4 w-4" />
+                      <span>Import from Git</span>
+                    </TabsTrigger>
+                  </TabsList>
+                  
+                  <TabsContent value="upload">
+                    <FileUpload />
+                  </TabsContent>
+                  
+                  <TabsContent value="vcs">
+                    <VCSConnector />
+                  </TabsContent>
+                </Tabs>
 
-                    <LanguageSelector />
-                    
-                    <div className="flex justify-center pt-4">
-                      <Button
-                        onClick={handleAnalyze}
-                        disabled={!currentFile || !targetLanguage}
-                        size="lg"
-                        className="min-w-40 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg hover:shadow-xl transition-all duration-300"
-                      >
-                        Start Analysis
-                        <ArrowRight className="ml-2 h-4 w-4" />
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
+                <LanguageSelector />
+                
+                <div className="flex justify-center pt-4">
+                  <Button
+                    onClick={handleAnalyze}
+                    disabled={!currentFile || !targetLanguage}
+                    size="lg"
+                    className="min-w-40 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg hover:shadow-xl transition-all duration-300"
+                  >
+                    Start Analysis
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
 
-              {/* Preview Panel - 1 column */}
-              <div className="lg:col-span-1">
-                <PreviewPanel />
-              </div>
-            </div>
+            {/* Preview Panel - Full Width */}
+            <PreviewPanel />
           </div>
         </div>
         
