@@ -2,10 +2,12 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAppStore } from '@/store/appStore';
 import FileUpload from './FileUpload';
+import GitHubConnector from './GitHubConnector';
 import LanguageSelector from './LanguageSelector';
-import { ArrowRight, Code2, Zap, Shield } from 'lucide-react';
+import { ArrowRight, Code2, Zap, Shield, Upload, Github } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
 const HomePage: React.FC = () => {
@@ -15,7 +17,7 @@ const HomePage: React.FC = () => {
     if (!currentFile) {
       toast({
         title: "No file selected",
-        description: "Please upload a COBOL file first",
+        description: "Please upload a COBOL file or import from GitHub first",
         variant: "destructive"
       });
       return;
@@ -63,7 +65,7 @@ const HomePage: React.FC = () => {
           COBOL to Modern Languages
         </h1>
         <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-          Upload your COBOL code and convert to modern languages with AI-powered analysis and conversion
+          Upload your COBOL code or import from GitHub and convert to modern languages with AI-powered analysis and conversion
         </p>
       </div>
 
@@ -82,18 +84,38 @@ const HomePage: React.FC = () => {
         ))}
       </div>
 
-      {/* Upload Section */}
+      {/* Upload & GitHub Integration Section */}
       <Card className="bg-white/80 backdrop-blur-sm border-white/50 shadow-xl">
         <CardHeader>
           <CardTitle className="text-2xl bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
-            Upload & Configure
+            Import COBOL Files
           </CardTitle>
           <CardDescription>
-            Upload your COBOL file and select the target programming language
+            Upload files directly or import from your GitHub repository
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          <FileUpload />
+          <Tabs defaultValue="upload" className="space-y-4">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="upload" className="flex items-center space-x-2">
+                <Upload className="h-4 w-4" />
+                <span>Upload Files</span>
+              </TabsTrigger>
+              <TabsTrigger value="github" className="flex items-center space-x-2">
+                <Github className="h-4 w-4" />
+                <span>GitHub Import</span>
+              </TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="upload">
+              <FileUpload />
+            </TabsContent>
+            
+            <TabsContent value="github">
+              <GitHubConnector />
+            </TabsContent>
+          </Tabs>
+
           <LanguageSelector />
           
           <div className="flex justify-center pt-4">

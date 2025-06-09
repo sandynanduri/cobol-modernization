@@ -1,9 +1,9 @@
-
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAppStore } from '@/store/appStore';
+import GitHubExporter from './GitHubExporter';
 import { ArrowLeft, ArrowRight, Code, Download } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
@@ -189,10 +189,16 @@ public class COBOLConverter {
                   </CardDescription>
                 </div>
                 {convertedCode && (
-                  <Button onClick={handleDownload} variant="outline">
-                    <Download className="mr-2 h-4 w-4" />
-                    Download
-                  </Button>
+                  <div className="flex space-x-2">
+                    <Button onClick={handleDownload} variant="outline">
+                      <Download className="mr-2 h-4 w-4" />
+                      Download
+                    </Button>
+                    <GitHubExporter 
+                      code={convertedCode} 
+                      fileName={currentFile.name} 
+                    />
+                  </div>
                 )}
               </div>
             </CardHeader>
