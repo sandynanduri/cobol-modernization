@@ -59,7 +59,7 @@ const HomePage: React.FC = () => {
     <div className="max-w-4xl mx-auto space-y-8">
       {/* Hero Section */}
       <div className="text-center space-y-4">
-        <h1 className="text-4xl font-bold tracking-tight">
+        <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-gray-900 via-blue-800 to-indigo-800 bg-clip-text text-transparent">
           COBOL to Modern Languages
         </h1>
         <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
@@ -70,10 +70,10 @@ const HomePage: React.FC = () => {
       {/* Features */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {features.map((feature, index) => (
-          <Card key={index} className="text-center">
+          <Card key={index} className="text-center bg-white/80 backdrop-blur-sm border-white/50 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
             <CardHeader>
-              <div className="h-12 w-12 bg-primary/10 rounded-lg flex items-center justify-center mx-auto mb-4">
-                <feature.icon className="h-6 w-6 text-primary" />
+              <div className="h-12 w-12 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-lg flex items-center justify-center mx-auto mb-4 shadow-lg">
+                <feature.icon className="h-6 w-6 text-white" />
               </div>
               <CardTitle className="text-lg">{feature.title}</CardTitle>
               <CardDescription>{feature.description}</CardDescription>
@@ -83,9 +83,11 @@ const HomePage: React.FC = () => {
       </div>
 
       {/* Upload Section */}
-      <Card>
+      <Card className="bg-white/80 backdrop-blur-sm border-white/50 shadow-xl">
         <CardHeader>
-          <CardTitle>Upload & Configure</CardTitle>
+          <CardTitle className="text-2xl bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+            Upload & Configure
+          </CardTitle>
           <CardDescription>
             Upload your COBOL file and select the target programming language
           </CardDescription>
@@ -99,7 +101,7 @@ const HomePage: React.FC = () => {
               onClick={handleAnalyze}
               disabled={!currentFile || !targetLanguage}
               size="lg"
-              className="min-w-40"
+              className="min-w-40 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg hover:shadow-xl transition-all duration-300"
             >
               Start Analysis
               <ArrowRight className="ml-2 h-4 w-4" />
