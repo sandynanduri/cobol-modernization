@@ -16,7 +16,7 @@ const FileUpload: React.FC = () => {
     if (rejectedFiles.length > 0) {
       const rejection = rejectedFiles[0];
       if (rejection.errors[0]?.code === 'file-too-large') {
-        setError('File size must be less than 10MB');
+        setError('File size must be less than 50MB');
       } else if (rejection.errors[0]?.code === 'file-invalid-type') {
         setError('Only .cbl and .cob files are supported');
       }
@@ -52,7 +52,7 @@ const FileUpload: React.FC = () => {
     accept: {
       'text/plain': ['.cbl', '.cob']
     },
-    maxSize: 10 * 1024 * 1024, // 10MB
+    maxSize: 50 * 1024 * 1024, // 50MB
     multiple: false
   });
 
@@ -82,7 +82,7 @@ const FileUpload: React.FC = () => {
               Drag and drop your .cbl or .cob file, or click to browse
             </p>
             <p className="text-sm text-muted-foreground mt-1">
-              Maximum file size: 10MB
+              Maximum file size: 50MB (.cbl, .cob). For larger files or ZIP archives, Use Version Control.
             </p>
           </div>
         </div>
