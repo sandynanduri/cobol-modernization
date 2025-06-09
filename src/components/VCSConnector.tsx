@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,8 +5,9 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useAppStore } from '@/store/appStore';
-import { Github, GitBranch, FolderOpen, AlertCircle } from 'lucide-react';
+import { GitBranch, FolderOpen, AlertCircle, HelpCircle } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
 interface VCSFile {
@@ -184,11 +184,19 @@ const VCSConnector: React.FC = () => {
       <Card className="border-dashed">
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
-            {getProviderIcon()}
-            <span>Connect to Version Control</span>
+            <GitBranch className="h-5 w-5" />
+            <span>Import from Git</span>
+            <Tooltip>
+              <TooltipTrigger>
+                <HelpCircle className="h-4 w-4 text-muted-foreground" />
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Import COBOL code directly from a Git repository<br/>(GitHub, Bitbucket, GitLab, Azure DevOps)</p>
+              </TooltipContent>
+            </Tooltip>
           </CardTitle>
           <CardDescription>
-            Import COBOL files from GitHub, Bitbucket, GitLab, or any Git repository
+            Connect to your existing repositories to import COBOL programs and dependencies
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -196,7 +204,7 @@ const VCSConnector: React.FC = () => {
             <Label htmlFor="repo-url">Repository URL</Label>
             <Input
               id="repo-url"
-              placeholder="https://github.com/user/repo or https://bitbucket.org/user/repo"
+              placeholder="https://github.com/example/repo"
               value={repoUrl}
               onChange={(e) => setRepoUrl(e.target.value)}
             />

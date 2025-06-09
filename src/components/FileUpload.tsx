@@ -1,14 +1,31 @@
 
 import React, { useCallback, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { Upload, FileText, AlertCircle } from 'lucide-react';
+import { Upload, FileText, AlertCircle, Tag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { useAppStore } from '@/store/appStore';
 import { toast } from '@/hooks/use-toast';
 
 const FileUpload: React.FC = () => {
   const { setCurrentFile, currentFile } = useAppStore();
   const [error, setError] = useState<string>('');
+
+  const getFileType = (fileName: string): { type: string; variant: 'default' | 'secondary' | 'outline' } => {
+    const extension = fileName.toLowerCase().split('.').pop();
+    switch (extension) {
+      case 'cbl':
+        return { type: 'Main Program', variant: 'default' };
+      case 'cob':
+        return { type: 'Main Program', variant: 'default' };
+      case 'cpy':
+        return { type: 'Copybook', variant: 'secondary' };
+      case 'json':
+        return { type: 'Config', variant: 'outline' };
+      default:
+        return { type: 'COBOL File', variant: 'default' };
+    }
+  };
 
   const onDrop = useCallback((acceptedFiles: File[], rejectedFiles: any[]) => {
     setError('');
@@ -81,8 +98,11 @@ const FileUpload: React.FC = () => {
             <p className="text-muted-foreground">
               Drag and drop your .cbl or .cob file, or click to browse
             </p>
-            <p className="text-sm text-muted-foreground mt-1">
-              Maximum file size: 50MB (.cbl, .cob). For larger files or ZIP archives, Use Version Control.
+            <p className="text-sm text-muted-foreground mt-2">
+              Supported formats: .cbl, .cob (up to 50MB). For larger programs or multiple files, upload a ZIP or connect via Git repository.
+            </p>
+            <p className="text-xs text-muted-foreground mt-1 italic">
+              💡 You can also upload a ZIP archive containing .cbl, .cpy, .json files
             </p>
           </div>
         </div>
@@ -100,7 +120,16 @@ const FileUpload: React.FC = () => {
           <div className="flex items-center space-x-3">
             <FileText className="h-5 w-5 text-primary" />
             <div className="flex-1">
-              <p className="font-medium">{currentFile.name}</p>
+              <div className="flex items-center space-x-2 mb-1">
+                <p className="font-medium">{currentFile.name}</p>
+                <Badge 
+                  variant={getFileType(currentFile.name).variant}
+                  className="text-xs flex items-center space-x-1"
+                >
+                  <Tag className="h-3 w-3" />
+                  <span>{getFileType(currentFile.name).type}</span>
+                </Badge>
+              </div>
               <p className="text-sm text-muted-foreground">
                 {(currentFile.size / 1024).toFixed(1)} KB
               </p>
