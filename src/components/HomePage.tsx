@@ -3,6 +3,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { useAppStore } from '@/store/appStore';
 import FileUpload from './FileUpload';
@@ -46,17 +47,17 @@ const HomePage: React.FC = () => {
     {
       icon: Code2,
       title: 'Smart Analysis',
-      description: 'AI-powered business logic extraction from COBOL code'
+      description: 'AI-powered business logic extraction'
     },
     {
       icon: Zap,
       title: 'Multi-Language Support',
-      description: 'Convert to Python or Java with optimized syntax'
+      description: 'Convert to Python or Java'
     },
     {
       icon: Shield,
       title: 'Enterprise Ready',
-      description: 'Professional-grade conversion with validation'
+      description: 'Professional-grade conversion'
     }
   ];
 
@@ -73,21 +74,6 @@ const HomePage: React.FC = () => {
               <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
                 Upload your COBOL code or import from any Git repository and convert to modern languages with AI-powered analysis and conversion
               </p>
-            </div>
-
-            {/* Features */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {features.map((feature, index) => (
-                <Card key={index} className="text-center bg-white/80 backdrop-blur-sm border-white/50 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-                  <CardHeader>
-                    <div className="h-12 w-12 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-lg flex items-center justify-center mx-auto mb-4 shadow-lg">
-                      <feature.icon className="h-6 w-6 text-white" />
-                    </div>
-                    <CardTitle className="text-lg">{feature.title}</CardTitle>
-                    <CardDescription>{feature.description}</CardDescription>
-                  </CardHeader>
-                </Card>
-              ))}
             </div>
 
             {/* Import COBOL Files Section - Full Width */}
@@ -140,6 +126,19 @@ const HomePage: React.FC = () => {
 
             {/* Preview Panel - Full Width */}
             <PreviewPanel />
+
+            {/* Features as compact badges at bottom */}
+            <div className="text-center space-y-4 pt-4">
+              <p className="text-sm text-muted-foreground">Key Features</p>
+              <div className="flex flex-wrap justify-center gap-3">
+                {features.map((feature, index) => (
+                  <Badge key={index} variant="secondary" className="flex items-center space-x-2 px-3 py-2 text-sm">
+                    <feature.icon className="h-4 w-4" />
+                    <span>{feature.title}</span>
+                  </Badge>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
         
