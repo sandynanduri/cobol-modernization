@@ -7,29 +7,52 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAppStore } from '@/store/appStore';
-import { Github, FolderOpen, AlertCircle } from 'lucide-react';
+import { Github, GitBranch, FolderOpen, AlertCircle } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
-interface GitHubFile {
+interface VCSFile {
   name: string;
   path: string;
   content: string;
   size: number;
 }
 
-const GitHubConnector: React.FC = () => {
+const VCSConnector: React.FC = () => {
   const { setCurrentFile } = useAppStore();
   const [repoUrl, setRepoUrl] = useState('');
   const [isConnecting, setIsConnecting] = useState(false);
-  const [availableFiles, setAvailableFiles] = useState<GitHubFile[]>([]);
+  const [availableFiles, setAvailableFiles] = useState<VCSFile[]>([]);
   const [selectedFile, setSelectedFile] = useState<string>('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
-  const parseGitHubUrl = (url: string) => {
-    const regex = /github\.com\/([^\/]+)\/([^\/]+)/;
-    const match = url.match(regex);
-    if (match) {
-      return { owner: match[1], repo: match[2].replace('.git', '') };
+  const detectVCSProvider = (url: string) => {
+    if (url.includes('github.com')) return 'GitHub';
+    if (url.includes('bitbucket.org')) return 'Bitbucket';
+    if (url.includes('gitlab.com')) return 'GitLab';
+    if (url.includes('azure.com') || url.includes('visualstudio.com')) return 'Azure DevOps';
+    return 'Git Repository';
+  };
+
+  const parseRepositoryUrl = (url: string) => {
+    // Support various Git repository URL formats
+    const patterns = [
+      /(?:https?:\/\/)?(?:www\.)?github\.com\/([^\/]+)\/([^\/]+)/,
+      /(?:https?:\/\/)?(?:www\.)?bitbucket\.org\/([^\/]+)\/([^\/]+)/,
+      /(?:https?:\/\/)?(?:www\.)?gitlab\.com\/([^\/]+)\/([^\/]+)/,
+      /(?:https?:\/\/)?([^\/]+)\/([^\/]+)\/([^\/]+)/ // Generic Git URL pattern
+    ];
+
+    for (const pattern of patterns) {
+      const match = url.match(pattern);
+      if (match) {
+        const provider = detectVCSProvider(url);
+        return { 
+          provider,
+          owner: match[1], 
+          repo: match[2].replace('.git', ''),
+          fullUrl: url
+        };
+      }
     }
     return null;
   };
@@ -38,17 +61,17 @@ const GitHubConnector: React.FC = () => {
     if (!repoUrl.trim()) {
       toast({
         title: "Repository URL Required",
-        description: "Please enter a GitHub repository URL",
+        description: "Please enter a valid Git repository URL",
         variant: "destructive"
       });
       return;
     }
 
-    const repoInfo = parseGitHubUrl(repoUrl);
+    const repoInfo = parseRepositoryUrl(repoUrl);
     if (!repoInfo) {
       toast({
-        title: "Invalid GitHub URL",
-        description: "Please enter a valid GitHub repository URL",
+        title: "Invalid Repository URL",
+        description: "Please enter a valid Git repository URL (GitHub, Bitbucket, GitLab, etc.)",
         variant: "destructive"
       });
       return;
@@ -57,32 +80,32 @@ const GitHubConnector: React.FC = () => {
     setIsConnecting(true);
 
     try {
-      // Mock API call - in a real implementation, this would use GitHub API
-      // For demo purposes, we'll simulate finding COBOL files
-      const mockFiles: GitHubFile[] = [
+      // Mock API call - in a real implementation, this would use the appropriate VCS API
+      // For demo purposes, we'll simulate finding COBOL files based on the provider
+      const mockFiles: VCSFile[] = [
         {
-          name: 'payroll.cbl',
-          path: 'src/payroll.cbl',
+          name: repoInfo.provider === 'Bitbucket' ? 'accounting.cbl' : 'payroll.cbl',
+          path: repoInfo.provider === 'Bitbucket' ? 'src/accounting.cbl' : 'src/payroll.cbl',
           content: `       IDENTIFICATION DIVISION.
-       PROGRAM-ID. PAYROLL.
+       PROGRAM-ID. ${repoInfo.provider === 'Bitbucket' ? 'ACCOUNTING' : 'PAYROLL'}.
        
        DATA DIVISION.
        WORKING-STORAGE SECTION.
-       01 EMPLOYEE-RECORD.
-          05 EMP-ID       PIC 9(5).
-          05 EMP-NAME     PIC X(30).
-          05 EMP-SALARY   PIC 9(7)V99.
+       01 ${repoInfo.provider === 'Bitbucket' ? 'ACCOUNT-RECORD' : 'EMPLOYEE-RECORD'}.
+          05 ${repoInfo.provider === 'Bitbucket' ? 'ACC-ID' : 'EMP-ID'}       PIC 9(5).
+          05 ${repoInfo.provider === 'Bitbucket' ? 'ACC-NAME' : 'EMP-NAME'}     PIC X(30).
+          05 ${repoInfo.provider === 'Bitbucket' ? 'ACC-BALANCE' : 'EMP-SALARY'}   PIC 9(7)V99.
        
        PROCEDURE DIVISION.
        MAIN-PARA.
-           DISPLAY "PAYROLL SYSTEM STARTED".
-           PERFORM CALCULATE-PAY.
+           DISPLAY "${repoInfo.provider === 'Bitbucket' ? 'ACCOUNTING' : 'PAYROLL'} SYSTEM STARTED".
+           PERFORM ${repoInfo.provider === 'Bitbucket' ? 'CALCULATE-BALANCE' : 'CALCULATE-PAY'}.
            STOP RUN.
        
-       CALCULATE-PAY.
-           COMPUTE EMP-SALARY = EMP-SALARY * 1.05.
-           DISPLAY "Updated salary: " EMP-SALARY.`,
-          size: 542
+       ${repoInfo.provider === 'Bitbucket' ? 'CALCULATE-BALANCE' : 'CALCULATE-PAY'}.
+           ${repoInfo.provider === 'Bitbucket' ? 'COMPUTE ACC-BALANCE = ACC-BALANCE * 1.02' : 'COMPUTE EMP-SALARY = EMP-SALARY * 1.05'}.
+           DISPLAY "${repoInfo.provider === 'Bitbucket' ? 'Updated balance: " ACC-BALANCE' : 'Updated salary: " EMP-SALARY'}.`,
+          size: repoInfo.provider === 'Bitbucket' ? 567 : 542
         },
         {
           name: 'inventory.cbl',
@@ -115,7 +138,7 @@ const GitHubConnector: React.FC = () => {
       
       toast({
         title: "Repository Connected",
-        description: `Found ${mockFiles.length} COBOL files in ${repoInfo.owner}/${repoInfo.repo}`
+        description: `Found ${mockFiles.length} COBOL files in ${repoInfo.provider} repository`
       });
     } catch (error) {
       toast({
@@ -144,10 +167,16 @@ const GitHubConnector: React.FC = () => {
     setIsDialogOpen(false);
     setSelectedFile('');
     
+    const provider = detectVCSProvider(repoUrl);
     toast({
       title: "File Imported",
-      description: `${file.name} has been imported from the repository`
+      description: `${file.name} has been imported from ${provider}`
     });
+  };
+
+  const getProviderIcon = () => {
+    const provider = detectVCSProvider(repoUrl);
+    return <GitBranch className="h-5 w-5" />;
   };
 
   return (
@@ -155,11 +184,11 @@ const GitHubConnector: React.FC = () => {
       <Card className="border-dashed">
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
-            <Github className="h-5 w-5" />
-            <span>Connect to GitHub Repository</span>
+            {getProviderIcon()}
+            <span>Connect to Version Control</span>
           </CardTitle>
           <CardDescription>
-            Import COBOL files directly from your GitHub repository
+            Import COBOL files from GitHub, Bitbucket, GitLab, or any Git repository
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -167,10 +196,15 @@ const GitHubConnector: React.FC = () => {
             <Label htmlFor="repo-url">Repository URL</Label>
             <Input
               id="repo-url"
-              placeholder="https://github.com/username/repository"
+              placeholder="https://github.com/user/repo or https://bitbucket.org/user/repo"
               value={repoUrl}
               onChange={(e) => setRepoUrl(e.target.value)}
             />
+            {repoUrl && (
+              <p className="text-sm text-muted-foreground">
+                Detected provider: {detectVCSProvider(repoUrl)}
+              </p>
+            )}
           </div>
           <Button 
             onClick={fetchRepositoryFiles}
@@ -253,4 +287,4 @@ const GitHubConnector: React.FC = () => {
   );
 };
 
-export default GitHubConnector;
+export default VCSConnector;
