@@ -3,7 +3,6 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Badge } from '@/components/ui/badge';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { useAppStore } from '@/store/appStore';
 import FileUpload from './FileUpload';
@@ -11,7 +10,7 @@ import VCSConnector from './VCSConnector';
 import LanguageSelector from './LanguageSelector';
 import PreviewPanel from './PreviewPanel';
 import TrustSignal from './TrustSignal';
-import { ArrowRight, Code2, Zap, Shield, Upload, GitBranch } from 'lucide-react';
+import { ArrowRight, Upload, GitBranch } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
 const HomePage: React.FC = () => {
@@ -42,24 +41,6 @@ const HomePage: React.FC = () => {
       description: `Analyzing ${currentFile.name} for ${targetLanguage} conversion`
     });
   };
-
-  const features = [
-    {
-      icon: Code2,
-      title: 'Smart Analysis',
-      description: 'AI-powered business logic extraction'
-    },
-    {
-      icon: Zap,
-      title: 'Multi-Language Support',
-      description: 'Convert to Python or Java'
-    },
-    {
-      icon: Shield,
-      title: 'Enterprise Ready',
-      description: 'Professional-grade conversion'
-    }
-  ];
 
   return (
     <TooltipProvider>
@@ -126,19 +107,6 @@ const HomePage: React.FC = () => {
 
             {/* Preview Panel - Full Width */}
             <PreviewPanel />
-
-            {/* Features as compact badges at bottom */}
-            <div className="text-center space-y-4 pt-4">
-              <p className="text-sm text-muted-foreground">Key Features</p>
-              <div className="flex flex-wrap justify-center gap-3">
-                {features.map((feature, index) => (
-                  <Badge key={index} variant="secondary" className="flex items-center space-x-2 px-3 py-2 text-sm">
-                    <feature.icon className="h-4 w-4" />
-                    <span>{feature.title}</span>
-                  </Badge>
-                ))}
-              </div>
-            </div>
           </div>
         </div>
         

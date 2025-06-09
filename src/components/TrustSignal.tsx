@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Shield, Lock, Zap } from 'lucide-react';
+import { Shield, Lock, Zap, Code2 } from 'lucide-react';
 
 const TrustSignal: React.FC = () => {
   return (
@@ -18,6 +18,10 @@ const TrustSignal: React.FC = () => {
           <div className="flex items-center space-x-2">
             <Lock className="h-4 w-4 text-purple-600" />
             <span>Enterprise Secure</span>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Code2 className="h-4 w-4 text-orange-600" />
+            <span>Multi-Language Support</span>
           </div>
         </div>
         <p className="text-center text-xs text-muted-foreground mt-2">
