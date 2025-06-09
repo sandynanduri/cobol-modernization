@@ -90,9 +90,9 @@ const HomePage: React.FC = () => {
               ))}
             </div>
 
-            {/* Main Content Area */}
+            {/* Main Content Area - Full Width Import Section */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Upload & Version Control Integration Section */}
+              {/* Upload & Version Control Integration Section - Spans 2 columns */}
               <div className="lg:col-span-2">
                 <Card className="bg-white/80 backdrop-blur-sm border-white/50 shadow-xl">
                   <CardHeader>
@@ -142,7 +142,7 @@ const HomePage: React.FC = () => {
                 </Card>
               </div>
 
-              {/* Preview Panel */}
+              {/* Preview Panel - 1 column */}
               <div className="lg:col-span-1">
                 <PreviewPanel />
               </div>
