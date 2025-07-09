@@ -7,6 +7,9 @@ import { useAppStore } from '@/store/appStore';
 import GitHubExporter from './GitHubExporter';
 import { ArrowLeft, ArrowRight, Code, Download, FileText, CheckCircle } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import ReactMarkdown from 'react-markdown';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
 const ConvertPage: React.FC = () => {
   const { 
@@ -443,27 +446,105 @@ public class COBOLConverter {
             </CardHeader>
             <CardContent>
               <div className="prose prose-sm max-w-none bg-background p-6 rounded-lg border overflow-auto max-h-[600px]">
-                {businessLogic.split('\n').map((line, index) => {
-                  if (line.startsWith('# ')) {
-                    return <h1 key={index} className="text-2xl font-bold mb-4 text-primary">{line.substring(2)}</h1>;
-                  } else if (line.startsWith('## ')) {
-                    return <h2 key={index} className="text-xl font-semibold mb-3 mt-6 text-primary">{line.substring(3)}</h2>;
-                  } else if (line.startsWith('### ')) {
-                    return <h3 key={index} className="text-lg font-medium mb-2 mt-4">{line.substring(4)}</h3>;
-                  } else if (line.startsWith('**') && line.endsWith('**')) {
-                    return <p key={index} className="font-semibold mb-2">{line.slice(2, -2)}</p>;
-                  } else if (line.startsWith('- ')) {
-                    return <li key={index} className="ml-4 mb-1">{line.substring(2)}</li>;
-                  } else if (line.startsWith('1. ') || line.match(/^\d+\. /)) {
-                    return <li key={index} className="ml-4 mb-1 list-decimal">{line.substring(line.indexOf(' ') + 1)}</li>;
-                  } else if (line.trim() === '---') {
-                    return <hr key={index} className="my-6 border-border" />;
-                  } else if (line.trim() === '') {
-                    return <br key={index} />;
-                  } else {
-                    return <p key={index} className="mb-2">{line}</p>;
-                  }
-                })}
+                <ReactMarkdown
+                  components={{
+                    h1: ({ children }) => (
+                      <h1 className="text-2xl font-bold mb-4 text-primary border-b border-border pb-2">
+                        {children}
+                      </h1>
+                    ),
+                    h2: ({ children }) => (
+                      <h2 className="text-xl font-semibold mb-3 mt-6 text-primary">
+                        {children}
+                      </h2>
+                    ),
+                    h3: ({ children }) => (
+                      <h3 className="text-lg font-medium mb-2 mt-4 text-foreground">
+                        {children}
+                      </h3>
+                    ),
+                    h4: ({ children }) => (
+                      <h4 className="text-base font-medium mb-2 mt-3 text-foreground">
+                        {children}
+                      </h4>
+                    ),
+                    p: ({ children }) => (
+                      <p className="mb-3 text-foreground leading-relaxed">
+                        {children}
+                      </p>
+                    ),
+                    ul: ({ children }) => (
+                      <ul className="list-disc ml-6 mb-3 space-y-1">
+                        {children}
+                      </ul>
+                    ),
+                    ol: ({ children }) => (
+                      <ol className="list-decimal ml-6 mb-3 space-y-1">
+                        {children}
+                      </ol>
+                    ),
+                    li: ({ children }) => (
+                      <li className="text-foreground">
+                        {children}
+                      </li>
+                    ),
+                    strong: ({ children }) => (
+                      <strong className="font-semibold text-primary">
+                        {children}
+                      </strong>
+                    ),
+                    em: ({ children }) => (
+                      <em className="italic text-muted-foreground">
+                        {children}
+                      </em>
+                    ),
+                    blockquote: ({ children }) => (
+                      <blockquote className="border-l-4 border-primary pl-4 py-2 bg-muted/50 italic my-4">
+                        {children}
+                      </blockquote>
+                    ),
+                    hr: () => (
+                      <hr className="my-6 border-border" />
+                    ),
+                    table: ({ children }) => (
+                      <div className="overflow-x-auto my-4">
+                        <table className="min-w-full border-collapse border border-border">
+                          {children}
+                        </table>
+                      </div>
+                    ),
+                    th: ({ children }) => (
+                      <th className="border border-border bg-muted px-4 py-2 text-left font-semibold">
+                        {children}
+                      </th>
+                    ),
+                    td: ({ children }) => (
+                      <td className="border border-border px-4 py-2">
+                        {children}
+                      </td>
+                    ),
+                    code: ({ className, children, ...props }) => {
+                      const match = /language-(\w+)/.exec(className || '');
+                      const inline = (props as any).inline;
+                      return !inline && match ? (
+                        <SyntaxHighlighter
+                          style={oneDark}
+                          language={match[1]}
+                          PreTag="div"
+                          className="rounded-lg my-4"
+                        >
+                          {String(children).replace(/\n$/, '')}
+                        </SyntaxHighlighter>
+                      ) : (
+                        <code className="bg-muted px-2 py-1 rounded text-sm font-mono">
+                          {children}
+                        </code>
+                      );
+                    },
+                  }}
+                >
+                  {businessLogic || "No BRD generated yet..."}
+                </ReactMarkdown>
               </div>
             </CardContent>
           </Card>
