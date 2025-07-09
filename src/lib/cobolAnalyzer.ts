@@ -1,5 +1,21 @@
 import { CobolAnalysis } from '@/store/appStore';
 
+export interface ProgramDependency {
+  programName: string;
+  calledPrograms: string[];
+  calledBy: string[];
+  copybooks: string[];
+  isSubprogram: boolean;
+  isMainProgram: boolean;
+}
+
+export interface DependencyGraph {
+  programs: Map<string, ProgramDependency>;
+  missingPrograms: string[];
+  copybooks: string[];
+  orphanedPrograms: string[];
+}
+
 export const analyzeCobolFile = (content: string, fileName: string): CobolAnalysis => {
   const lines = content.toUpperCase().split('\n');
   const analysis: CobolAnalysis = {
@@ -98,4 +114,80 @@ export const analyzeCobolFile = (content: string, fileName: string): CobolAnalys
   }
 
   return analysis;
+};
+
+// Extract program name from COBOL file content
+export const extractProgramName = (content: string): string => {
+  const lines = content.toUpperCase().split('\n');
+  for (const line of lines) {
+    const trimmedLine = line.trim();
+    const match = trimmedLine.match(/PROGRAM-ID\.\s*([A-Z0-9-]+)/);
+    if (match && match[1]) {
+      return match[1];
+    }
+  }
+  return '';
+};
+
+// Enhanced dependency analysis for multiple files
+export const analyzeDependencies = (files: Array<{ name: string; content: string }>): DependencyGraph => {
+  const programs = new Map<string, ProgramDependency>();
+  const allCallStatements = new Set<string>();
+  const copybooks = new Set<string>();
+
+  // First pass: Identify all programs and their immediate dependencies
+  files.forEach(file => {
+    const analysis = analyzeCobolFile(file.content, file.name);
+    const programName = extractProgramName(file.content) || file.name.replace(/\.(cbl|cob|cobol)$/i, '').toUpperCase();
+    
+    if (analysis.fileType === 'copybook') {
+      copybooks.add(programName);
+      return;
+    }
+
+    const dependency: ProgramDependency = {
+      programName,
+      calledPrograms: [...new Set(analysis.dependencies.callStatements)], // Remove duplicates
+      calledBy: [],
+      copybooks: [...new Set(analysis.dependencies.copyStatements)],
+      isSubprogram: analysis.fileType === 'subprogram',
+      isMainProgram: analysis.fileType === 'main-program'
+    };
+
+    programs.set(programName, dependency);
+    
+    // Collect all call statements for missing program detection
+    analysis.dependencies.callStatements.forEach(call => allCallStatements.add(call));
+  });
+
+  // Second pass: Build reverse dependencies (calledBy relationships)
+  programs.forEach((program, programName) => {
+    program.calledPrograms.forEach(calledProgram => {
+      const calledProgramData = programs.get(calledProgram);
+      if (calledProgramData) {
+        calledProgramData.calledBy.push(programName);
+        // If a program is called by others, it's likely a subprogram
+        if (calledProgramData.calledBy.length > 0) {
+          calledProgramData.isSubprogram = true;
+          calledProgramData.isMainProgram = false;
+        }
+      }
+    });
+  });
+
+  // Identify missing programs (called but not found in uploaded files)
+  const existingPrograms = new Set(programs.keys());
+  const missingPrograms = Array.from(allCallStatements).filter(call => !existingPrograms.has(call));
+
+  // Identify orphaned programs (not called by anyone and don't call others)
+  const orphanedPrograms = Array.from(programs.entries())
+    .filter(([_, program]) => program.calledBy.length === 0 && program.calledPrograms.length === 0)
+    .map(([name, _]) => name);
+
+  return {
+    programs,
+    missingPrograms,
+    copybooks: Array.from(copybooks),
+    orphanedPrograms
+  };
 };

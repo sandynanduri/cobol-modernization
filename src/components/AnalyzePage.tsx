@@ -6,7 +6,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { useAppStore } from '@/store/appStore';
 import { ArrowLeft, ArrowRight, FileText, Zap, CheckCircle, Code2, Database, ExternalLink, ChevronDown, ChevronRight, Loader2, AlertTriangle, FileCheck } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
-import { analyzeCobolFile } from '@/lib/cobolAnalyzer';
+import { analyzeCobolFile, analyzeDependencies as analyzeCobolDependencies, DependencyGraph } from '@/lib/cobolAnalyzer';
 import { supabase } from '@/integrations/supabase/client';
 
 const AnalyzePage: React.FC = () => {
@@ -22,6 +22,19 @@ const AnalyzePage: React.FC = () => {
     setIsAnalyzingDependencies
   } = useAppStore();
   const [dependenciesOpen, setDependenciesOpen] = React.useState(false);
+  const [localDependencyGraph, setLocalDependencyGraph] = React.useState<DependencyGraph | null>(null);
+
+  // Analyze local dependencies using our enhanced analyzer
+  useEffect(() => {
+    if (uploadedFiles.length > 0) {
+      const files = uploadedFiles.map(file => ({
+        name: file.name,
+        content: file.content || ''
+      }));
+      const graph = analyzeCobolDependencies(files);
+      setLocalDependencyGraph(graph);
+    }
+  }, [uploadedFiles]);
 
   useEffect(() => {
     uploadedFiles.forEach((file) => {
@@ -258,6 +271,142 @@ ${uploadedFiles.map((file, index) => `${index + 1}. ${file.name} (${file.cobolAn
           </div>
         </CardContent>
       </Card>
+
+      {/* Enhanced Local Dependencies Analysis */}
+      {localDependencyGraph && uploadedFiles.length > 1 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <Code2 className="h-5 w-5" />
+              <span>Program Dependencies</span>
+            </CardTitle>
+            <CardDescription>
+              Static analysis of COBOL program relationships and dependencies
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Summary Stats */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="text-center p-3 border rounded-lg">
+                <div className="text-2xl font-bold text-blue-600">{localDependencyGraph.programs.size}</div>
+                <div className="text-sm text-muted-foreground">Programs</div>
+              </div>
+              <div className="text-center p-3 border rounded-lg">
+                <div className="text-2xl font-bold text-purple-600">
+                  {Array.from(localDependencyGraph.programs.values()).filter(p => p.isSubprogram).length}
+                </div>
+                <div className="text-sm text-muted-foreground">Subprograms</div>
+              </div>
+              <div className="text-center p-3 border rounded-lg">
+                <div className="text-2xl font-bold text-green-600">{localDependencyGraph.copybooks.length}</div>
+                <div className="text-sm text-muted-foreground">Copybooks</div>
+              </div>
+              <div className="text-center p-3 border rounded-lg">
+                <div className="text-2xl font-bold text-red-600">{localDependencyGraph.missingPrograms.length}</div>
+                <div className="text-sm text-muted-foreground">Missing</div>
+              </div>
+            </div>
+
+            {/* Program Relationships */}
+            {Array.from(localDependencyGraph.programs.entries()).map(([programName, program]) => (
+              <div key={programName} className="border rounded-lg p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <h4 className="font-medium">{programName}</h4>
+                    <Badge className={`${getCobolTypeColor(program.isSubprogram ? 'subprogram' : program.isMainProgram ? 'main-program' : 'unknown')} text-xs`}>
+                      {program.isSubprogram ? 'SUBPROGRAM' : program.isMainProgram ? 'MAIN PROGRAM' : 'PROGRAM'}
+                    </Badge>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                  {/* Called Programs */}
+                  <div>
+                    <label className="font-medium text-muted-foreground">Calls:</label>
+                    <div className="mt-1">
+                      {program.calledPrograms.length > 0 ? (
+                        <div className="space-y-1">
+                          {program.calledPrograms.map((called, index) => (
+                            <div key={index} className="flex items-center space-x-2">
+                              <ArrowRight className="h-3 w-3 text-muted-foreground" />
+                              <span className={localDependencyGraph.programs.has(called) ? 'text-blue-600' : 'text-red-600'}>
+                                {called}
+                              </span>
+                              {!localDependencyGraph.programs.has(called) && (
+                                <Badge variant="destructive" className="text-xs">Missing</Badge>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground italic">None</span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Called By */}
+                  <div>
+                    <label className="font-medium text-muted-foreground">Called by:</label>
+                    <div className="mt-1">
+                      {program.calledBy.length > 0 ? (
+                        <div className="space-y-1">
+                          {program.calledBy.map((caller, index) => (
+                            <div key={index} className="flex items-center space-x-2">
+                              <ArrowLeft className="h-3 w-3 text-muted-foreground" />
+                              <span className="text-purple-600">{caller}</span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground italic">None</span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Copybooks */}
+                  <div>
+                    <label className="font-medium text-muted-foreground">Copybooks:</label>
+                    <div className="mt-1">
+                      {program.copybooks.length > 0 ? (
+                        <div className="space-y-1">
+                          {program.copybooks.map((copybook, index) => (
+                            <div key={index} className="flex items-center space-x-2">
+                              <FileText className="h-3 w-3 text-muted-foreground" />
+                              <span className="text-green-600">{copybook}</span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground italic">None</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+
+            {/* Missing Programs Alert */}
+            {localDependencyGraph.missingPrograms.length > 0 && (
+              <div className="p-4 rounded-lg border border-red-200 bg-red-50">
+                <div className="flex items-center space-x-2 mb-2">
+                  <AlertTriangle className="h-5 w-5 text-red-600" />
+                  <h4 className="font-semibold text-red-800">Missing Dependencies</h4>
+                </div>
+                <p className="text-sm text-red-700 mb-2">
+                  The following programs are called but not found in your uploaded files:
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {localDependencyGraph.missingPrograms.map((missing, index) => (
+                    <Badge key={index} variant="destructive" className="text-xs">
+                      {missing}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Dependencies Analysis */}
       <Card>
