@@ -559,9 +559,80 @@ public class COBOLConverter {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <pre className="bg-muted p-4 rounded-lg text-sm overflow-auto max-h-96">
-                {pseudoCode || "No pseudo code generated yet..."}
-              </pre>
+              <div className="prose prose-sm max-w-none bg-background p-6 rounded-lg border overflow-auto max-h-[600px]">
+                {pseudoCode ? (
+                  <ReactMarkdown
+                    components={{
+                      h1: ({ children }) => (
+                        <h1 className="text-2xl font-bold mb-4 text-primary border-b border-border pb-2">
+                          {children}
+                        </h1>
+                      ),
+                      h2: ({ children }) => (
+                        <h2 className="text-xl font-semibold mb-3 mt-6 text-primary">
+                          {children}
+                        </h2>
+                      ),
+                      h3: ({ children }) => (
+                        <h3 className="text-lg font-medium mb-2 mt-4 text-foreground">
+                          {children}
+                        </h3>
+                      ),
+                      h4: ({ children }) => (
+                        <h4 className="text-base font-medium mb-2 mt-3 text-foreground">
+                          {children}
+                        </h4>
+                      ),
+                      p: ({ children }) => (
+                        <p className="mb-3 text-foreground leading-relaxed">
+                          {children}
+                        </p>
+                      ),
+                      ul: ({ children }) => (
+                        <ul className="list-disc ml-6 mb-3 space-y-1">
+                          {children}
+                        </ul>
+                      ),
+                      ol: ({ children }) => (
+                        <ol className="list-decimal ml-6 mb-3 space-y-1">
+                          {children}
+                        </ol>
+                      ),
+                      li: ({ children }) => (
+                        <li className="text-foreground">
+                          {children}
+                        </li>
+                      ),
+                      strong: ({ children }) => (
+                        <strong className="font-semibold text-primary">
+                          {children}
+                        </strong>
+                      ),
+                      code: ({ children }) => (
+                        <code className="bg-muted px-2 py-1 rounded font-mono text-sm">
+                          {children}
+                        </code>
+                      ),
+                      pre: ({ children }) => (
+                        <pre className="bg-muted p-4 rounded-lg overflow-x-auto font-mono text-sm">
+                          {children}
+                        </pre>
+                      ),
+                      blockquote: ({ children }) => (
+                        <blockquote className="border-l-4 border-primary pl-4 italic">
+                          {children}
+                        </blockquote>
+                      )
+                    }}
+                  >
+                    {pseudoCode}
+                  </ReactMarkdown>
+                ) : (
+                  <div className="text-muted-foreground text-center py-8">
+                    No pseudo code generated yet...
+                  </div>
+                )}
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
