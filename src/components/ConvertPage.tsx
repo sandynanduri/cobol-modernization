@@ -10,6 +10,7 @@ import { toast } from '@/hooks/use-toast';
 import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import { supabase } from '@/integrations/supabase/client';
 
 const ConvertPage: React.FC = () => {
   const { 
@@ -83,29 +84,32 @@ const ConvertPage: React.FC = () => {
         description: "Creating algorithmic representation..."
       });
 
-      const selectedFileNames = selectedFiles.join(', ');
-      const mockPseudoCode = `PSEUDO CODE for ${selectedFiles.length} selected COBOL files:
+      try {
+        const pseudoResponse = await supabase.functions.invoke('generate-pseudocode', {
+          body: { files: selectedFileContents }
+        });
 
-Selected Files: ${selectedFileNames}
+        if (pseudoResponse.error) {
+          console.error('Error generating pseudo code:', pseudoResponse.error);
+          toast({
+            title: "Error",
+            description: "Failed to generate pseudo code. Please try again.",
+            variant: "destructive"
+          });
+          return;
+        }
 
-1. INITIALIZE data validation flags for selected files
-2. READ input data from selected files:
-${selectedFiles.map((file, index) => `   ${index + 1}. Process ${file}`).join('\n')}
-3. FOR each data record in selected files:
-   a. VALIDATE input format
-   b. IF valid THEN
-      - CALCULATE business values
-      - APPLY business rules
-   c. ELSE
-      - LOG error
-      - SET error flag
-4. FORMAT output results
-5. WRITE results to output file
-6. RETURN status code
-
-Dependencies processed: ${dependencyAnalysis?.dependencies.length || 0}`;
-
-      setPseudoCode(mockPseudoCode);
+        const pseudoCode = pseudoResponse.data.pseudocode;
+        setPseudoCode(pseudoCode);
+      } catch (error) {
+        console.error('Error calling generate-pseudocode function:', error);
+        toast({
+          title: "Error",
+          description: "Failed to generate pseudo code. Please try again.",
+          variant: "destructive"
+        });
+        return;
+      }
 
       // Brief delay for user feedback
       await new Promise(resolve => setTimeout(resolve, 1000));
@@ -116,7 +120,8 @@ Dependencies processed: ${dependencyAnalysis?.dependencies.length || 0}`;
         description: `Combining BRD and Pseudo Code to generate ${targetLanguage} code...`
       });
 
-      const mockConvertedCode = targetLanguage === 'python' 
+      const selectedFileNames = selectedFiles.join(', ');
+      const mockConvertedCode = targetLanguage === 'python'
         ? `# Converted from ${selectedFiles.length} selected COBOL files
 # Selected files: ${selectedFileNames}
 # Target: Python
