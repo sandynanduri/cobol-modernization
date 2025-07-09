@@ -115,126 +115,36 @@ const ConvertPage: React.FC = () => {
         description: `Combining BRD and Pseudo Code to generate ${targetLanguage} code...`
       });
 
-      const selectedFileNames = selectedFiles.join(', ');
-      const mockConvertedCode = targetLanguage === 'python'
-        ? `# Converted from ${selectedFiles.length} selected COBOL files
-# Selected files: ${selectedFileNames}
-# Target: Python
-# 
-# This code combines the Business Requirements Document and Pseudo Code
-# to create a comprehensive ${targetLanguage} implementation
+      console.log('Calling comprehensive code conversion with:', {
+        filesCount: selectedFileContents.length,
+        hasBusinessLogic: !!businessLogic,
+        hasPseudoCode: !!pseudoCode,
+        targetLanguage
+      });
 
-class COBOLConverter:
-    def __init__(self):
-        """Initialize converter with BRD specifications"""
-        self.data_validation = True
-        self.selected_files = [${selectedFiles.map(f => `"${f}"`).join(', ')}]
-        
-    def process_data(self, input_data):
-        """
-        Process input data with validation for selected files
-        Based on BRD requirements and pseudo code logic
-        """
-        if not self.validate_input(input_data):
-            raise ValueError("Invalid input data - BRD requirement: Input validation")
-            
-        # Main processing logic combining BRD and pseudo code
-        result = self.calculate_values(input_data)
-        return self.format_output(result)
-        
-    def validate_input(self, data):
-        """Validate input data according to BRD specifications"""
-        return data is not None and len(data) > 0
-        
-    def calculate_values(self, data):
-        """
-        Perform calculations based on selected file logic
-        Implements pseudo code step 3: business calculations
-        """
-        # Business logic implementation from selected files
-        return sum(data) if isinstance(data, list) else data
-        
-    def format_output(self, result):
-        """Format output according to BRD output requirements"""
-        return f"Result from {len(self.selected_files)} files: {result}"
-
-if __name__ == "__main__":
-    # Test implementation following BRD success criteria
-    converter = COBOLConverter()
-    sample_data = [1, 2, 3, 4, 5]
-    print(converter.process_data(sample_data))
-`
-        : `// Converted from ${selectedFiles.length} selected COBOL files
-// Selected files: ${selectedFileNames}
-// Target: Java
-// 
-// This code combines the Business Requirements Document and Pseudo Code
-// to create a comprehensive ${targetLanguage} implementation
-
-public class COBOLConverter {
-    private boolean dataValidation;
-    private String[] selectedFiles = {${selectedFiles.map(f => `"${f}"`).join(', ')}};
-    
-    /**
-     * Initialize converter with BRD specifications
-     */
-    public COBOLConverter() {
-        this.dataValidation = true;
-    }
-    
-    /**
-     * Process input data with validation for selected files
-     * Based on BRD requirements and pseudo code logic
-     */
-    public String processData(int[] inputData) throws IllegalArgumentException {
-        if (!validateInput(inputData)) {
-            throw new IllegalArgumentException("Invalid input data - BRD requirement: Input validation");
+      const conversionResponse = await supabase.functions.invoke('convert-to-target-language', {
+        body: {
+          files: selectedFileContents,
+          businessLogic: brdData.brd,
+          pseudoCode: pseudoCode,
+          targetLanguage
         }
-        
-        // Main processing logic combining BRD and pseudo code
-        int result = calculateValues(inputData);
-        return formatOutput(result);
-    }
-    
-    /**
-     * Validate input data according to BRD specifications
-     */
-    private boolean validateInput(int[] data) {
-        return data != null && data.length > 0;
-    }
-    
-    /**
-     * Perform calculations based on selected file logic
-     * Implements pseudo code step 3: business calculations
-     */
-    private int calculateValues(int[] data) {
-        // Business logic implementation from selected files
-        int sum = 0;
-        for (int value : data) {
-            sum += value;
-        }
-        return sum;
-    }
-    
-    /**
-     * Format output according to BRD output requirements
-     */
-    private String formatOutput(int result) {
-        return "Result from " + selectedFiles.length + " files: " + result;
-    }
-    
-    /**
-     * Test implementation following BRD success criteria
-     */
-    public static void main(String[] args) {
-        COBOLConverter converter = new COBOLConverter();
-        int[] sampleData = {1, 2, 3, 4, 5};
-        System.out.println(converter.processData(sampleData));
-    }
-}
-`;
+      });
 
-      setConvertedCode(mockConvertedCode);
+      console.log('Conversion Response:', conversionResponse);
+
+      if (conversionResponse.error) {
+        console.error('Error converting to target language:', conversionResponse.error);
+        toast({
+          title: "Error",
+          description: `Failed to convert to ${targetLanguage}: ${conversionResponse.error.message || 'Unknown error'}`,
+          variant: "destructive"
+        });
+        return;
+      }
+
+      const convertedCode = conversionResponse.data.convertedCode;
+      setConvertedCode(convertedCode);
       setIsConversionComplete(true);
       
       toast({

@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.generate-pseudocode]
 verify_jwt = false
+
+[functions.convert-to-target-language]
+verify_jwt = false
