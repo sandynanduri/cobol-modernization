@@ -84,64 +84,12 @@ const AnalyzePage: React.FC = () => {
   };
 
   const handleAnalyze = async () => {
-    // Skip OpenAI dependency analysis for now and generate mock BRD
-    const mockBusinessLogic = `# Business Requirements Document (BRD)
-
-## Project Overview
-**Project Name**: COBOL to ${targetLanguage} Conversion
-**Document Version**: 1.0
-**Date**: ${new Date().toLocaleDateString()}
-
-## Files Analyzed
-${uploadedFiles.map((file, index) => `${index + 1}. **${file.name}** - ${file.cobolAnalysis?.fileType || 'COBOL Program'}`).join('\n')}
-
-## Business Requirements
-
-### Functional Requirements
-1. **Data Processing**: The system must maintain existing data processing capabilities
-2. **Validation Rules**: All current business validation rules must be preserved
-3. **Calculation Logic**: Mathematical calculations must produce identical results
-4. **File Operations**: Input/output operations must handle the same data formats
-
-### Technical Requirements
-1. **Programming Language**: Convert to modern ${targetLanguage}
-2. **Architecture**: Implement object-oriented design patterns
-3. **Error Handling**: Use modern exception handling mechanisms
-4. **Performance**: Maintain or improve current processing speeds
-
-### Business Logic Components Identified
-- **Data Validation Routines**: Input validation and data integrity checks
-- **Calculation Procedures**: Mathematical operations and business calculations
-- **File I/O Operations**: Data input, processing, and output operations
-- **Error Handling Logic**: Exception management and recovery procedures
-- **Business Rules**: Domain-specific logic and constraints
-
-### Conversion Strategy
-1. **Phase 1**: Analysis and documentation of existing logic
-2. **Phase 2**: Design modern ${targetLanguage} architecture
-3. **Phase 3**: Implement core business logic
-4. **Phase 4**: Testing and validation
-5. **Phase 5**: Deployment and migration
-
-### Success Criteria
-- All existing functionality preserved
-- Improved code maintainability
-- Enhanced error handling
-- Better performance metrics
-- Comprehensive test coverage
-
-### Risks and Mitigation
-- **Data Loss**: Implement comprehensive backup and validation
-- **Logic Errors**: Extensive testing against original system
-- **Performance Issues**: Benchmark and optimize critical paths
-
----
-*This document serves as the foundation for the COBOL to ${targetLanguage} conversion project.*`;
+    // Run dependency analysis only
+    await analyzeDependencies();
     
-    setBusinessLogic(mockBusinessLogic);
     toast({
       title: "Analysis Complete",
-      description: `Business Requirements Document generated for ${uploadedFiles.length} file(s)`
+      description: `File analysis and dependency mapping completed for ${uploadedFiles.length} file(s)`
     });
     setCurrentStep('convert');
   };
