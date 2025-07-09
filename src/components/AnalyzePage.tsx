@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -10,23 +9,24 @@ import { toast } from '@/hooks/use-toast';
 import { analyzeCobolFile } from '@/lib/cobolAnalyzer';
 
 const AnalyzePage: React.FC = () => {
-  const { currentFile, targetLanguage, setCurrentStep, setBusinessLogic, setCurrentFile } = useAppStore();
+  const { uploadedFiles, targetLanguage, setCurrentStep, setBusinessLogic, updateUploadedFile } = useAppStore();
   const [dependenciesOpen, setDependenciesOpen] = React.useState(false);
 
   useEffect(() => {
-    if (currentFile && currentFile.content && !currentFile.cobolAnalysis) {
-      const analysis = analyzeCobolFile(currentFile.content, currentFile.name);
-      setCurrentFile({
-        ...currentFile,
-        cobolAnalysis: analysis
-      });
-    }
-  }, [currentFile, setCurrentFile]);
+    uploadedFiles.forEach((file) => {
+      if (file.content && !file.cobolAnalysis) {
+        const analysis = analyzeCobolFile(file.content, file.name);
+        updateUploadedFile(file.id, { cobolAnalysis: analysis });
+      }
+    });
+  }, [uploadedFiles, updateUploadedFile]);
 
   const handleAnalyze = () => {
-    // Simulate analysis process
     const mockBusinessLogic = `
-# Business Logic Analysis for ${currentFile?.name}
+# Business Logic Analysis for ${uploadedFiles.length} COBOL Files
+
+## Files Analyzed:
+${uploadedFiles.map((file, index) => `${index + 1}. ${file.name} (${file.cobolAnalysis?.fileType || 'unknown'})`).join('\n')}
 
 ## Key Components Identified:
 1. Data validation routines
@@ -44,7 +44,7 @@ const AnalyzePage: React.FC = () => {
     setBusinessLogic(mockBusinessLogic);
     toast({
       title: "Analysis Complete",
-      description: "Business logic has been extracted and analyzed"
+      description: `Business logic extracted from ${uploadedFiles.length} file(s)`
     });
     setCurrentStep('convert');
   };
@@ -63,14 +63,36 @@ const AnalyzePage: React.FC = () => {
     }
   };
 
-  if (!currentFile || !targetLanguage) {
+  // Aggregate all dependencies from all files
+  const aggregatedDependencies = uploadedFiles.reduce((acc, file) => {
+    if (file.cobolAnalysis?.dependencies) {
+      acc.copyStatements.push(...file.cobolAnalysis.dependencies.copyStatements);
+      acc.callStatements.push(...file.cobolAnalysis.dependencies.callStatements);
+      acc.fileAssignments.push(...file.cobolAnalysis.dependencies.fileAssignments);
+      acc.databaseConnections.push(...file.cobolAnalysis.dependencies.databaseConnections);
+    }
+    return acc;
+  }, {
+    copyStatements: [] as string[],
+    callStatements: [] as string[],
+    fileAssignments: [] as string[],
+    databaseConnections: [] as string[]
+  });
+
+  // Remove duplicates
+  Object.keys(aggregatedDependencies).forEach(key => {
+    aggregatedDependencies[key as keyof typeof aggregatedDependencies] = 
+      [...new Set(aggregatedDependencies[key as keyof typeof aggregatedDependencies])];
+  });
+
+  if (uploadedFiles.length === 0 || !targetLanguage) {
     return (
       <div className="max-w-4xl mx-auto">
         <Card>
           <CardHeader>
             <CardTitle>Analysis Required</CardTitle>
             <CardDescription>
-              Please upload a file and select a target language first
+              Please upload files and select a target language first
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -90,7 +112,7 @@ const AnalyzePage: React.FC = () => {
       <div className="text-center space-y-2">
         <h1 className="text-3xl font-bold">COBOL Analysis</h1>
         <p className="text-muted-foreground">
-          Analyzing {currentFile.name} for {targetLanguage} conversion
+          Analyzing {uploadedFiles.length} file(s) for {targetLanguage} conversion
         </p>
       </div>
 
@@ -99,7 +121,7 @@ const AnalyzePage: React.FC = () => {
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
             <FileText className="h-5 w-5" />
-            <span>File Analysis</span>
+            <span>Files Analysis</span>
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -129,75 +151,58 @@ const AnalyzePage: React.FC = () => {
         </CardContent>
       </Card>
 
-      {/* Enhanced File Information */}
+      {/* Files Information */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
             <Code2 className="h-5 w-5" />
-            <span>File Information</span>
+            <span>Files Information ({uploadedFiles.length})</span>
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="space-y-4">
-              <div>
-                <label className="text-sm font-medium text-muted-foreground">File Name</label>
-                <p className="font-medium">{currentFile.name}</p>
-              </div>
-              <div>
-                <label className="text-sm font-medium text-muted-foreground">Extension</label>
-                <p className="font-medium">{getFileExtension(currentFile.name) || 'N/A'}</p>
-              </div>
-              <div>
-                <label className="text-sm font-medium text-muted-foreground">File Size</label>
-                <p className="font-medium">{(currentFile.size / 1024).toFixed(1)} KB</p>
-              </div>
-            </div>
-            
-            <div className="space-y-4">
-              <div>
-                <label className="text-sm font-medium text-muted-foreground">COBOL Type</label>
-                <div className="mt-1">
-                  <Badge className={`${getCobolTypeColor(currentFile.cobolAnalysis?.fileType || 'unknown')} text-xs`}>
-                    {currentFile.cobolAnalysis?.fileType.replace('-', ' ').toUpperCase() || 'UNKNOWN'}
-                  </Badge>
-                </div>
-              </div>
-              <div>
-                <label className="text-sm font-medium text-muted-foreground">Target Language</label>
-                <p className="font-medium capitalize">{targetLanguage}</p>
-              </div>
-              <div>
-                <label className="text-sm font-medium text-muted-foreground">Upload Date</label>
-                <p className="font-medium">{currentFile.uploadedAt.toLocaleDateString()}</p>
-              </div>
-            </div>
+          <div className="space-y-4">
+            {uploadedFiles.map((file) => (
+              <div key={file.id} className="border rounded-lg p-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <h4 className="font-medium">{file.name}</h4>
+                    <div className="flex items-center space-x-2">
+                      <Badge className={`${getCobolTypeColor(file.cobolAnalysis?.fileType || 'unknown')} text-xs`}>
+                        {file.cobolAnalysis?.fileType.replace('-', ' ').toUpperCase() || 'UNKNOWN'}
+                      </Badge>
+                      <span className="text-sm text-muted-foreground">
+                        {(file.size / 1024).toFixed(1)} KB
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-muted-foreground">COBOL Divisions</label>
+                    <div className="flex flex-wrap gap-1">
+                      {file.cobolAnalysis?.divisions.map((division, index) => (
+                        <Badge key={index} variant="outline" className="text-xs">
+                          {division}
+                        </Badge>
+                      )) || <span className="text-sm text-muted-foreground">Analyzing...</span>}
+                    </div>
+                  </div>
 
-            <div className="space-y-4">
-              <div>
-                <label className="text-sm font-medium text-muted-foreground">COBOL Divisions</label>
-                <div className="flex flex-wrap gap-1 mt-1">
-                  {currentFile.cobolAnalysis?.divisions.map((division, index) => (
-                    <Badge key={index} variant="outline" className="text-xs">
-                      {division}
-                    </Badge>
-                  )) || <span className="text-sm text-muted-foreground">Analyzing...</span>}
-                </div>
-              </div>
-              <div>
-                <label className="text-sm font-medium text-muted-foreground">Structure Status</label>
-                <div className="space-y-1 mt-1">
-                  <div className="flex items-center space-x-2">
-                    <div className={`h-2 w-2 rounded-full ${currentFile.cobolAnalysis?.hasIdentificationDivision ? 'bg-green-500' : 'bg-gray-300'}`} />
-                    <span className="text-xs">Identification Division</span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <div className={`h-2 w-2 rounded-full ${currentFile.cobolAnalysis?.hasProcedureDivision ? 'bg-green-500' : 'bg-gray-300'}`} />
-                    <span className="text-xs">Procedure Division</span>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-muted-foreground">Structure Status</label>
+                    <div className="space-y-1">
+                      <div className="flex items-center space-x-2">
+                        <div className={`h-2 w-2 rounded-full ${file.cobolAnalysis?.hasIdentificationDivision ? 'bg-green-500' : 'bg-gray-300'}`} />
+                        <span className="text-xs">Identification Division</span>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <div className={`h-2 w-2 rounded-full ${file.cobolAnalysis?.hasProcedureDivision ? 'bg-green-500' : 'bg-gray-300'}`} />
+                        <span className="text-xs">Procedure Division</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
+            ))}
           </div>
         </CardContent>
       </Card>
@@ -214,7 +219,7 @@ const AnalyzePage: React.FC = () => {
           <Collapsible open={dependenciesOpen} onOpenChange={setDependenciesOpen}>
             <CollapsibleTrigger asChild>
               <Button variant="ghost" className="w-full justify-between p-0 h-auto">
-                <span className="text-left">View Dependencies</span>
+                <span className="text-left">View Aggregated Dependencies</span>
                 {dependenciesOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
               </Button>
             </CollapsibleTrigger>
@@ -226,9 +231,9 @@ const AnalyzePage: React.FC = () => {
                     <FileText className="h-4 w-4 text-blue-600" />
                     <h4 className="font-semibold">COPY Statements</h4>
                   </div>
-                  {currentFile.cobolAnalysis?.dependencies.copyStatements.length ? (
+                  {aggregatedDependencies.copyStatements.length ? (
                     <div className="space-y-1">
-                      {currentFile.cobolAnalysis.dependencies.copyStatements.map((copy, index) => (
+                      {aggregatedDependencies.copyStatements.map((copy, index) => (
                         <div key={index} className="flex items-center space-x-2">
                           <Badge variant="outline" className="text-xs">{copy}</Badge>
                         </div>
@@ -244,9 +249,9 @@ const AnalyzePage: React.FC = () => {
                     <ExternalLink className="h-4 w-4 text-purple-600" />
                     <h4 className="font-semibold">CALL Statements</h4>
                   </div>
-                  {currentFile.cobolAnalysis?.dependencies.callStatements.length ? (
+                  {aggregatedDependencies.callStatements.length ? (
                     <div className="space-y-1">
-                      {currentFile.cobolAnalysis.dependencies.callStatements.map((call, index) => (
+                      {aggregatedDependencies.callStatements.map((call, index) => (
                         <div key={index} className="flex items-center space-x-2">
                           <Badge variant="outline" className="text-xs">{call}</Badge>
                         </div>
@@ -262,9 +267,9 @@ const AnalyzePage: React.FC = () => {
                     <Database className="h-4 w-4 text-green-600" />
                     <h4 className="font-semibold">File Assignments</h4>
                   </div>
-                  {currentFile.cobolAnalysis?.dependencies.fileAssignments.length ? (
+                  {aggregatedDependencies.fileAssignments.length ? (
                     <div className="space-y-1">
-                      {currentFile.cobolAnalysis.dependencies.fileAssignments.map((file, index) => (
+                      {aggregatedDependencies.fileAssignments.map((file, index) => (
                         <div key={index} className="flex items-center space-x-2">
                           <Badge variant="outline" className="text-xs">{file}</Badge>
                         </div>
@@ -280,9 +285,9 @@ const AnalyzePage: React.FC = () => {
                     <Zap className="h-4 w-4 text-orange-600" />
                     <h4 className="font-semibold">Database Connections</h4>
                   </div>
-                  {currentFile.cobolAnalysis?.dependencies.databaseConnections.length ? (
+                  {aggregatedDependencies.databaseConnections.length ? (
                     <div className="space-y-1">
-                      {currentFile.cobolAnalysis.dependencies.databaseConnections.map((db, index) => (
+                      {aggregatedDependencies.databaseConnections.map((db, index) => (
                         <div key={index} className="flex items-center space-x-2">
                           <Badge variant="outline" className="text-xs">{db}</Badge>
                         </div>

@@ -52,7 +52,7 @@ export interface ConversionSession {
 
 interface AppState {
   // Current session
-  currentFile: UploadedFile | null;
+  uploadedFiles: UploadedFile[];
   targetLanguage: 'python' | 'java' | null;
   chatMessages: ChatMessage[];
   businessLogic: string;
@@ -69,7 +69,10 @@ interface AppState {
   successfulCompilations: number;
   
   // Actions
-  setCurrentFile: (file: UploadedFile | null) => void;
+  addUploadedFile: (file: UploadedFile) => void;
+  removeUploadedFile: (fileId: string) => void;
+  updateUploadedFile: (fileId: string, updates: Partial<UploadedFile>) => void;
+  clearUploadedFiles: () => void;
   setTargetLanguage: (language: 'python' | 'java' | null) => void;
   addChatMessage: (message: Omit<ChatMessage, 'id' | 'timestamp'>) => void;
   setBusinessLogic: (logic: string) => void;
@@ -83,7 +86,7 @@ interface AppState {
 
 export const useAppStore = create<AppState>((set, get) => ({
   // Initial state
-  currentFile: null,
+  uploadedFiles: [],
   targetLanguage: null,
   chatMessages: [],
   businessLogic: '',
@@ -100,7 +103,18 @@ export const useAppStore = create<AppState>((set, get) => ({
   successfulCompilations: 0,
   
   // Actions
-  setCurrentFile: (file) => set({ currentFile: file }),
+  addUploadedFile: (file) => set((state) => ({
+    uploadedFiles: [...state.uploadedFiles, file]
+  })),
+  removeUploadedFile: (fileId) => set((state) => ({
+    uploadedFiles: state.uploadedFiles.filter(file => file.id !== fileId)
+  })),
+  updateUploadedFile: (fileId, updates) => set((state) => ({
+    uploadedFiles: state.uploadedFiles.map(file =>
+      file.id === fileId ? { ...file, ...updates } : file
+    )
+  })),
+  clearUploadedFiles: () => set({ uploadedFiles: [] }),
   setTargetLanguage: (language) => set({ targetLanguage: language }),
   addChatMessage: (message) => set((state) => ({
     chatMessages: [...state.chatMessages, {
@@ -137,7 +151,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     )
   })),
   resetCurrentSession: () => set({
-    currentFile: null,
+    uploadedFiles: [],
     targetLanguage: null,
     chatMessages: [],
     businessLogic: '',

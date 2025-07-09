@@ -6,13 +6,13 @@ import { useAppStore } from '@/store/appStore';
 import { FileText, Target, CheckCircle, AlertCircle } from 'lucide-react';
 
 const PreviewPanel: React.FC = () => {
-  const { currentFile, targetLanguage } = useAppStore();
+  const { uploadedFiles, targetLanguage } = useAppStore();
 
-  if (!currentFile && !targetLanguage) {
+  if (uploadedFiles.length === 0 && !targetLanguage) {
     return null;
   }
 
-  const isReady = currentFile && targetLanguage;
+  const isReady = uploadedFiles.length > 0 && targetLanguage;
 
   return (
     <Card className="bg-gradient-to-br from-blue-50/50 to-indigo-50/50 border-blue-200/50">
@@ -29,17 +29,19 @@ const PreviewPanel: React.FC = () => {
               <FileText className="h-4 w-4 text-muted-foreground" />
               <span className="text-sm font-medium">Source File</span>
             </div>
-            {currentFile ? (
+            {uploadedFiles.length > 0 ? (
               <CheckCircle className="h-4 w-4 text-green-600" />
             ) : (
               <AlertCircle className="h-4 w-4 text-yellow-600" />
             )}
           </div>
-          {currentFile && (
+          {uploadedFiles.length > 0 && (
             <div className="ml-6 space-y-1">
-              <p className="text-sm font-medium">{currentFile.name}</p>
+              <p className="text-sm font-medium">
+                {uploadedFiles.length} file(s) uploaded
+              </p>
               <p className="text-xs text-muted-foreground">
-                {(currentFile.size / 1024).toFixed(1)} KB
+                Total size: {(uploadedFiles.reduce((sum, file) => sum + file.size, 0) / 1024).toFixed(1)} KB
               </p>
             </div>
           )}

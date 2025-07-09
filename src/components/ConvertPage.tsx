@@ -9,7 +9,7 @@ import { toast } from '@/hooks/use-toast';
 
 const ConvertPage: React.FC = () => {
   const { 
-    currentFile, 
+    uploadedFiles, 
     targetLanguage, 
     businessLogic, 
     convertedCode,
@@ -18,9 +18,10 @@ const ConvertPage: React.FC = () => {
   } = useAppStore();
 
   const handleConvert = () => {
+    const mainFile = uploadedFiles[0]; // Use first file as the main file for demo
     // Simulate conversion process
     const mockConvertedCode = targetLanguage === 'python' 
-      ? `# Converted from ${currentFile?.name}
+      ? `# Converted from ${uploadedFiles.length} COBOL files
 # Target: Python
 
 class COBOLConverter:
@@ -54,7 +55,7 @@ if __name__ == "__main__":
     sample_data = [1, 2, 3, 4, 5]
     print(converter.process_data(sample_data))
 `
-      : `// Converted from ${currentFile?.name}
+      : `// Converted from ${uploadedFiles.length} COBOL files
 // Target: Java
 
 public class COBOLConverter {
@@ -108,7 +109,7 @@ public class COBOLConverter {
 
   const handleDownload = () => {
     const fileExtension = targetLanguage === 'python' ? 'py' : 'java';
-    const fileName = `converted_${currentFile?.name?.replace('.cbl', '')}.${fileExtension}`;
+    const fileName = `converted_cobol_files.${fileExtension}`;
     
     const blob = new Blob([convertedCode], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
@@ -124,7 +125,7 @@ public class COBOLConverter {
     });
   };
 
-  if (!currentFile || !targetLanguage || !businessLogic) {
+  if (uploadedFiles.length === 0 || !targetLanguage || !businessLogic) {
     return (
       <div className="max-w-4xl mx-auto">
         <Card>
@@ -151,7 +152,7 @@ public class COBOLConverter {
       <div className="text-center space-y-2">
         <h1 className="text-3xl font-bold">COBOL Conversion</h1>
         <p className="text-muted-foreground">
-          Converting {currentFile.name} to {targetLanguage}
+          Converting {uploadedFiles.length} file(s) to {targetLanguage}
         </p>
       </div>
 
@@ -196,7 +197,7 @@ public class COBOLConverter {
                     </Button>
                     <GitHubExporter 
                       code={convertedCode} 
-                      fileName={currentFile.name} 
+                      fileName={uploadedFiles[0]?.name || 'converted'} 
                     />
                   </div>
                 )}

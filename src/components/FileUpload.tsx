@@ -8,7 +8,7 @@ import { useAppStore } from '@/store/appStore';
 import { toast } from '@/hooks/use-toast';
 
 const FileUpload: React.FC = () => {
-  const { setCurrentFile, currentFile } = useAppStore();
+  const { addUploadedFile, removeUploadedFile, uploadedFiles } = useAppStore();
   const [error, setError] = useState<string>('');
 
   const getFileType = (fileName: string): { type: string; variant: 'default' | 'secondary' | 'outline' } => {
@@ -35,42 +35,42 @@ const FileUpload: React.FC = () => {
       if (rejection.errors[0]?.code === 'file-too-large') {
         setError('File size must be less than 50MB');
       } else if (rejection.errors[0]?.code === 'file-invalid-type') {
-        setError('Only .cbl and .cob files are supported');
+        setError('Only .cbl, .cob, and .cpy files are supported');
       }
       return;
     }
 
-    if (acceptedFiles.length > 0) {
-      const file = acceptedFiles[0];
+    acceptedFiles.forEach((file) => {
       const reader = new FileReader();
       
       reader.onload = (e) => {
         const content = e.target?.result as string;
-        setCurrentFile({
-          id: Date.now().toString(),
+        addUploadedFile({
+          id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
           name: file.name,
           type: file.type || 'text/plain',
           size: file.size,
           content,
           uploadedAt: new Date()
         });
-        toast({
-          title: "File uploaded successfully",
-          description: `${file.name} is ready for analysis`
-        });
       };
       
       reader.readAsText(file);
-    }
-  }, [setCurrentFile]);
+    });
+    
+    toast({
+      title: "Files uploaded successfully",
+      description: `${acceptedFiles.length} file(s) ready for analysis`
+    });
+  }, [addUploadedFile]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: {
-      'text/plain': ['.cbl', '.cob']
+      'text/plain': ['.cbl', '.cob', '.cpy']
     },
     maxSize: 50 * 1024 * 1024, // 50MB
-    multiple: false
+    multiple: true
   });
 
   return (
@@ -93,16 +93,16 @@ const FileUpload: React.FC = () => {
           </div>
           <div>
             <h3 className="text-lg font-semibold mb-2">
-              {isDragActive ? 'Drop your COBOL file here' : 'Upload COBOL File'}
+              {isDragActive ? 'Drop your COBOL files here' : 'Upload COBOL Files'}
             </h3>
             <p className="text-muted-foreground">
-              Drag and drop your .cbl or .cob file, or click to browse
+              Drag and drop your .cbl, .cob, or .cpy files, or click to browse
             </p>
             <p className="text-sm text-muted-foreground mt-2">
-              Supported formats: .cbl, .cob (up to 50MB). For larger programs or multiple files, upload a ZIP or connect via Git repository.
+              Supported formats: .cbl, .cob, .cpy (up to 50MB each). You can upload multiple files at once.
             </p>
             <p className="text-xs text-muted-foreground mt-1 italic">
-              💡 You can also upload a ZIP archive containing .cbl, .cpy, .json files
+              💡 Select multiple files to upload an entire COBOL project with copybooks
             </p>
           </div>
         </div>
@@ -115,33 +115,40 @@ const FileUpload: React.FC = () => {
         </div>
       )}
 
-      {currentFile && (
-        <div className="bg-muted/50 rounded-lg p-4">
-          <div className="flex items-center space-x-3">
-            <FileText className="h-5 w-5 text-primary" />
-            <div className="flex-1">
-              <div className="flex items-center space-x-2 mb-1">
-                <p className="font-medium">{currentFile.name}</p>
-                <Badge 
-                  variant={getFileType(currentFile.name).variant}
-                  className="text-xs flex items-center space-x-1"
+      {uploadedFiles.length > 0 && (
+        <div className="space-y-3">
+          <h4 className="font-medium text-sm text-muted-foreground">
+            Uploaded Files ({uploadedFiles.length})
+          </h4>
+          {uploadedFiles.map((file) => (
+            <div key={file.id} className="bg-muted/50 rounded-lg p-4">
+              <div className="flex items-center space-x-3">
+                <FileText className="h-5 w-5 text-primary" />
+                <div className="flex-1">
+                  <div className="flex items-center space-x-2 mb-1">
+                    <p className="font-medium">{file.name}</p>
+                    <Badge 
+                      variant={getFileType(file.name).variant}
+                      className="text-xs flex items-center space-x-1"
+                    >
+                      <Tag className="h-3 w-3" />
+                      <span>{getFileType(file.name).type}</span>
+                    </Badge>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    {(file.size / 1024).toFixed(1)} KB • Uploaded {file.uploadedAt.toLocaleTimeString()}
+                  </p>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => removeUploadedFile(file.id)}
                 >
-                  <Tag className="h-3 w-3" />
-                  <span>{getFileType(currentFile.name).type}</span>
-                </Badge>
+                  Remove
+                </Button>
               </div>
-              <p className="text-sm text-muted-foreground">
-                {(currentFile.size / 1024).toFixed(1)} KB
-              </p>
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setCurrentFile(null)}
-            >
-              Remove
-            </Button>
-          </div>
+          ))}
         </div>
       )}
     </div>

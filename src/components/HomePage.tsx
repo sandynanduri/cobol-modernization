@@ -14,13 +14,13 @@ import { ArrowRight, Upload, GitBranch } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
 const HomePage: React.FC = () => {
-  const { currentFile, targetLanguage, setCurrentStep } = useAppStore();
+  const { uploadedFiles, targetLanguage, setCurrentStep } = useAppStore();
 
   const handleAnalyze = () => {
-    if (!currentFile) {
+    if (uploadedFiles.length === 0) {
       toast({
-        title: "No file selected",
-        description: "Please upload a COBOL file or import from a repository first",
+        title: "No files selected",
+        description: "Please upload COBOL files or import from a repository first",
         variant: "destructive"
       });
       return;
@@ -38,7 +38,7 @@ const HomePage: React.FC = () => {
     setCurrentStep('analyze');
     toast({
       title: "Starting analysis",
-      description: `Analyzing ${currentFile.name} for ${targetLanguage} conversion`
+      description: `Analyzing ${uploadedFiles.length} file(s) for ${targetLanguage} conversion`
     });
   };
 
@@ -94,7 +94,7 @@ const HomePage: React.FC = () => {
                 <div className="flex justify-center pt-4">
                   <Button
                     onClick={handleAnalyze}
-                    disabled={!currentFile || !targetLanguage}
+                    disabled={uploadedFiles.length === 0 || !targetLanguage}
                     size="lg"
                     className="min-w-40 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg hover:shadow-xl transition-all duration-300"
                   >

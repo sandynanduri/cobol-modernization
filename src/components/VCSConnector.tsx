@@ -18,7 +18,7 @@ interface VCSFile {
 }
 
 const VCSConnector: React.FC = () => {
-  const { setCurrentFile } = useAppStore();
+  const { addUploadedFile } = useAppStore();
   const [repoUrl, setRepoUrl] = useState('');
   const [isConnecting, setIsConnecting] = useState(false);
   const [availableFiles, setAvailableFiles] = useState<VCSFile[]>([]);
@@ -155,7 +155,7 @@ const VCSConnector: React.FC = () => {
     const file = availableFiles.find(f => f.path === selectedFile);
     if (!file) return;
 
-    setCurrentFile({
+    addUploadedFile({
       id: Date.now().toString(),
       name: file.name,
       type: 'text/plain',
