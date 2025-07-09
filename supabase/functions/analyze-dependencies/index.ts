@@ -111,15 +111,45 @@ If no dependencies are found between the files, set hasDependencies to false and
     // Parse the JSON response from OpenAI
     let analysis: DependencyAnalysis;
     try {
-      analysis = JSON.parse(analysisText);
+      // Try to extract JSON from the response if it's wrapped in other text
+      let jsonText = analysisText.trim();
+      
+      // Look for JSON block markers and extract content between them
+      const jsonBlockMatch = jsonText.match(/```json\s*\n([\s\S]*?)\n```/);
+      if (jsonBlockMatch) {
+        jsonText = jsonBlockMatch[1].trim();
+      } else {
+        // Look for JSON content between curly braces
+        const jsonMatch = jsonText.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          jsonText = jsonMatch[0];
+        }
+      }
+      
+      console.log('Extracted JSON:', jsonText);
+      analysis = JSON.parse(jsonText);
+      
+      // Validate the structure
+      if (!analysis.hasOwnProperty('hasDependencies') || !analysis.hasOwnProperty('summary')) {
+        throw new Error('Invalid response structure');
+      }
+      
     } catch (parseError) {
       console.error('Failed to parse OpenAI response as JSON:', parseError);
-      // Fallback response
+      console.error('Raw response was:', analysisText);
+      
+      // Try to create a basic analysis from the raw text
+      const hasDeps = analysisText.toLowerCase().includes('dependencies') || 
+                     analysisText.toLowerCase().includes('call') || 
+                     analysisText.toLowerCase().includes('copy');
+      
       analysis = {
-        hasDependencies: false,
-        summary: "Unable to analyze dependencies due to parsing error. Please review files manually.",
+        hasDependencies: hasDeps,
+        summary: hasDeps ? 
+          "Dependencies detected in the analysis response, but JSON parsing failed. Manual review recommended." :
+          "No clear dependencies found in the analysis. The response could not be parsed as JSON.",
         dependencies: [],
-        recommendations: ["Manual review required for dependency analysis"]
+        recommendations: ["Manual review required due to parsing error", "Check the edge function logs for the raw OpenAI response"]
       };
     }
 
