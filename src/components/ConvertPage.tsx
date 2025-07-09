@@ -51,7 +51,7 @@ const ConvertPage: React.FC = () => {
         }));
 
       // Call the BRD generation edge function
-      const brdResponse = await fetch('https://wmcgzozzsprofrfbkymz.supabase.co/functions/v1/generate-brd', {
+      const brdResponse = await fetch('https://wmcgzozzspvrwfpscmyz.supabase.co/functions/v1/generate-brd', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
