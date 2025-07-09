@@ -1,6 +1,22 @@
 
 import { create } from 'zustand';
 
+export interface CobolAnalysis {
+  fileType: 'main-program' | 'copybook' | 'subprogram' | 'unknown';
+  divisions: string[];
+  hasIdentificationDivision: boolean;
+  hasEnvironmentDivision: boolean;
+  hasDataDivision: boolean;
+  hasProcedureDivision: boolean;
+  dependencies: {
+    copyStatements: string[];
+    callStatements: string[];
+    fileAssignments: string[];
+    databaseConnections: string[];
+    externalReferences: string[];
+  };
+}
+
 export interface UploadedFile {
   id: string;
   name: string;
@@ -8,6 +24,7 @@ export interface UploadedFile {
   size: number;
   content?: string;
   uploadedAt: Date;
+  cobolAnalysis?: CobolAnalysis;
 }
 
 export interface ChatMessage {
