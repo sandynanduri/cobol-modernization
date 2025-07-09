@@ -54,25 +54,26 @@ const ConvertPage: React.FC = () => {
           content: file.content
         }));
 
+      console.log('Calling BRD generation with:', selectedFileContents.length, 'files');
+
       // Call the BRD generation edge function
-      const brdResponse = await fetch('https://wmcgzozzspvrwfpscmyz.supabase.co/functions/v1/generate-brd', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndtY2d6b3p6c3B2cndmcHNjbXl6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTIwNjA1OTAsImV4cCI6MjA2NzYzNjU5MH0.6IdB_GaC8dpJQ2iBwisbrvLPdPh1zWKLHKfApT07zZg`
-        },
-        body: JSON.stringify({
-          files: selectedFileContents
-        })
+      const brdResponse = await supabase.functions.invoke('generate-brd', {
+        body: { files: selectedFileContents }
       });
 
-      if (!brdResponse.ok) {
-        const errorText = await brdResponse.text();
-        console.error('BRD generation failed:', errorText);
-        throw new Error(`Failed to generate BRD: ${brdResponse.status}`);
+      console.log('BRD Response:', brdResponse);
+
+      if (brdResponse.error) {
+        console.error('BRD generation failed:', brdResponse.error);
+        toast({
+          title: "Error",
+          description: `Failed to generate BRD: ${brdResponse.error.message || 'Unknown error'}`,
+          variant: "destructive"
+        });
+        return;
       }
 
-      const brdData = await brdResponse.json();
+      const brdData = brdResponse.data;
       setBusinessLogic(brdData.brd);
 
       // Brief delay for user feedback
@@ -84,32 +85,26 @@ const ConvertPage: React.FC = () => {
         description: "Creating algorithmic representation..."
       });
 
-      try {
-        const pseudoResponse = await supabase.functions.invoke('generate-pseudocode', {
-          body: { files: selectedFileContents }
-        });
+      console.log('Calling pseudo code generation with:', selectedFileContents.length, 'files');
+      
+      const pseudoResponse = await supabase.functions.invoke('generate-pseudocode', {
+        body: { files: selectedFileContents }
+      });
 
-        if (pseudoResponse.error) {
-          console.error('Error generating pseudo code:', pseudoResponse.error);
-          toast({
-            title: "Error",
-            description: "Failed to generate pseudo code. Please try again.",
-            variant: "destructive"
-          });
-          return;
-        }
+      console.log('Pseudo Response:', pseudoResponse);
 
-        const pseudoCode = pseudoResponse.data.pseudocode;
-        setPseudoCode(pseudoCode);
-      } catch (error) {
-        console.error('Error calling generate-pseudocode function:', error);
+      if (pseudoResponse.error) {
+        console.error('Error generating pseudo code:', pseudoResponse.error);
         toast({
           title: "Error",
-          description: "Failed to generate pseudo code. Please try again.",
+          description: `Failed to generate pseudo code: ${pseudoResponse.error.message || 'Unknown error'}`,
           variant: "destructive"
         });
         return;
       }
+
+      const pseudoCode = pseudoResponse.data.pseudocode;
+      setPseudoCode(pseudoCode);
 
       // Brief delay for user feedback
       await new Promise(resolve => setTimeout(resolve, 1000));
