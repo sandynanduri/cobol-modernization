@@ -67,10 +67,21 @@ const FileUpload: React.FC = () => {
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: {
-      'text/plain': ['.cbl', '.cob', '.cpy']
+      'application/x-cobol': ['.cbl', '.cob'],
+      'text/x-cobol-copy': ['.cpy']
     },
     maxSize: 50 * 1024 * 1024, // 50MB
-    multiple: true
+    multiple: true,
+    validator: (file) => {
+      const extension = file.name.toLowerCase().split('.').pop();
+      if (!['cbl', 'cob', 'cpy'].includes(extension || '')) {
+        return {
+          code: 'file-invalid-type',
+          message: 'Only .cbl, .cob, and .cpy files are allowed'
+        };
+      }
+      return null;
+    }
   });
 
   return (
