@@ -23,16 +23,13 @@ export const analyzeCobolFile = (content: string, fileName: string): CobolAnalys
     analysis.fileType = 'copybook';
   }
 
-  // Check for divisions
+  // Check for divisions and extract dependencies
   lines.forEach(line => {
     const trimmedLine = line.trim();
     
     if (trimmedLine.includes('IDENTIFICATION DIVISION')) {
       analysis.hasIdentificationDivision = true;
       analysis.divisions.push('IDENTIFICATION');
-      if (analysis.fileType === 'unknown') {
-        analysis.fileType = 'main-program';
-      }
     }
     
     if (trimmedLine.includes('ENVIRONMENT DIVISION')) {
@@ -79,14 +76,25 @@ export const analyzeCobolFile = (content: string, fileName: string): CobolAnalys
     }
   });
 
-  // Determine if it's a subprogram
-  if (analysis.fileType === 'unknown' && analysis.hasProcedureDivision && !analysis.hasIdentificationDivision) {
-    analysis.fileType = 'subprogram';
-  }
-
-  // If still unknown but has copybook characteristics
-  if (analysis.fileType === 'unknown' && (analysis.hasDataDivision && !analysis.hasProcedureDivision)) {
-    analysis.fileType = 'copybook';
+  // Determine file type based on updated criteria
+  if (analysis.fileType !== 'copybook') { // Only if not already determined by extension
+    if (!analysis.hasIdentificationDivision && analysis.hasDataDivision) {
+      // Copybook: No IDENTIFICATION DIVISION, has data definitions
+      analysis.fileType = 'copybook';
+    } else if (analysis.hasIdentificationDivision && analysis.hasProcedureDivision) {
+      // Check if it's called by other programs (semantic detection)
+      const isCalledProgram = analysis.dependencies.callStatements.length === 0 && 
+                             lines.some(line => line.includes('LINKAGE SECTION'));
+      
+      if (isCalledProgram) {
+        analysis.fileType = 'subprogram';
+      } else {
+        analysis.fileType = 'main-program';
+      }
+    } else if (analysis.hasDataDivision && !analysis.hasProcedureDivision) {
+      // Data definitions only, no executable logic
+      analysis.fileType = 'copybook';
+    }
   }
 
   return analysis;
