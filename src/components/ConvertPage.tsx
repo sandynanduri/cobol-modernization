@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAppStore } from '@/store/appStore';
 import GitHubExporter from './GitHubExporter';
-import { ArrowLeft, ArrowRight, Code, Download } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Code, Download, FileText } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
 const ConvertPage: React.FC = () => {
@@ -147,6 +147,23 @@ public class COBOLConverter {
     });
   };
 
+  const handleDownloadBRD = () => {
+    const fileName = 'Business_Requirements_Document.md';
+    
+    const blob = new Blob([businessLogic], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = fileName;
+    link.click();
+    URL.revokeObjectURL(url);
+    
+    toast({
+      title: "BRD Downloaded",
+      description: "Business Requirements Document has been downloaded"
+    });
+  };
+
   if (uploadedFiles.length === 0 || !targetLanguage || !businessLogic) {
     return (
       <div className="max-w-4xl mx-auto">
@@ -189,15 +206,43 @@ public class COBOLConverter {
         <TabsContent value="brd">
           <Card>
             <CardHeader>
-              <CardTitle>Business Requirements Document (BRD)</CardTitle>
-              <CardDescription>
-                Business requirements and logic extracted from the COBOL files
-              </CardDescription>
+              <div className="flex justify-between items-center">
+                <div>
+                  <CardTitle>Business Requirements Document (BRD)</CardTitle>
+                  <CardDescription>
+                    Business requirements and logic extracted from the COBOL files
+                  </CardDescription>
+                </div>
+                <Button onClick={handleDownloadBRD} variant="outline">
+                  <Download className="mr-2 h-4 w-4" />
+                  Download BRD
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
-              <pre className="bg-muted p-4 rounded-lg text-sm overflow-auto max-h-96">
-                {businessLogic}
-              </pre>
+              <div className="prose prose-sm max-w-none bg-background p-6 rounded-lg border overflow-auto max-h-[600px]">
+                {businessLogic.split('\n').map((line, index) => {
+                  if (line.startsWith('# ')) {
+                    return <h1 key={index} className="text-2xl font-bold mb-4 text-primary">{line.substring(2)}</h1>;
+                  } else if (line.startsWith('## ')) {
+                    return <h2 key={index} className="text-xl font-semibold mb-3 mt-6 text-primary">{line.substring(3)}</h2>;
+                  } else if (line.startsWith('### ')) {
+                    return <h3 key={index} className="text-lg font-medium mb-2 mt-4">{line.substring(4)}</h3>;
+                  } else if (line.startsWith('**') && line.endsWith('**')) {
+                    return <p key={index} className="font-semibold mb-2">{line.slice(2, -2)}</p>;
+                  } else if (line.startsWith('- ')) {
+                    return <li key={index} className="ml-4 mb-1">{line.substring(2)}</li>;
+                  } else if (line.startsWith('1. ') || line.match(/^\d+\. /)) {
+                    return <li key={index} className="ml-4 mb-1 list-decimal">{line.substring(line.indexOf(' ') + 1)}</li>;
+                  } else if (line.trim() === '---') {
+                    return <hr key={index} className="my-6 border-border" />;
+                  } else if (line.trim() === '') {
+                    return <br key={index} />;
+                  } else {
+                    return <p key={index} className="mb-2">{line}</p>;
+                  }
+                })}
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
