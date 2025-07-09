@@ -12,8 +12,10 @@ const ConvertPage: React.FC = () => {
     uploadedFiles, 
     targetLanguage, 
     businessLogic, 
+    pseudoCode,
     convertedCode,
     setConvertedCode,
+    setPseudoCode,
     setCurrentStep 
   } = useAppStore();
 
@@ -101,6 +103,26 @@ public class COBOLConverter {
 `;
 
     setConvertedCode(mockConvertedCode);
+    
+    // Generate pseudo code
+    const mockPseudoCode = `PSEUDO CODE for ${uploadedFiles.length} COBOL files:
+
+1. INITIALIZE data validation flags
+2. READ input data from files
+3. FOR each data record:
+   a. VALIDATE input format
+   b. IF valid THEN
+      - CALCULATE business values
+      - APPLY business rules
+   c. ELSE
+      - LOG error
+      - SET error flag
+4. FORMAT output results
+5. WRITE results to output file
+6. RETURN status code`;
+
+    setPseudoCode(mockPseudoCode);
+    
     toast({
       title: "Conversion Complete",
       description: `COBOL code has been converted to ${targetLanguage}`
@@ -157,23 +179,40 @@ public class COBOLConverter {
       </div>
 
       {/* Conversion Tabs */}
-      <Tabs defaultValue="business-logic" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="business-logic">Business Logic</TabsTrigger>
+      <Tabs defaultValue="brd" className="space-y-4">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="brd">BRD</TabsTrigger>
+          <TabsTrigger value="pseudo-code">Pseudo Code</TabsTrigger>
           <TabsTrigger value="converted-code">Converted Code</TabsTrigger>
         </TabsList>
         
-        <TabsContent value="business-logic">
+        <TabsContent value="brd">
           <Card>
             <CardHeader>
-              <CardTitle>Extracted Business Logic</CardTitle>
+              <CardTitle>Business Requirements Document (BRD)</CardTitle>
               <CardDescription>
-                Core business rules and logic identified from the COBOL code
+                Business requirements and logic extracted from the COBOL files
               </CardDescription>
             </CardHeader>
             <CardContent>
               <pre className="bg-muted p-4 rounded-lg text-sm overflow-auto max-h-96">
                 {businessLogic}
+              </pre>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="pseudo-code">
+          <Card>
+            <CardHeader>
+              <CardTitle>Pseudo Code</CardTitle>
+              <CardDescription>
+                High-level algorithmic representation of the COBOL logic
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <pre className="bg-muted p-4 rounded-lg text-sm overflow-auto max-h-96">
+                {pseudoCode || "Generate conversion to see pseudo code..."}
               </pre>
             </CardContent>
           </Card>
