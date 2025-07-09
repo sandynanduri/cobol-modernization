@@ -36,70 +36,40 @@ const ConvertPage: React.FC = () => {
     }
 
     try {
-      // Step 1: BRD Generation
+      // Step 1: BRD Generation with actual COBOL content analysis
       toast({
         title: "Step 1/3: Generating BRD",
-        description: "Creating Business Requirements Document..."
+        description: "Analyzing COBOL code and creating Business Requirements Document..."
       });
 
-      const selectedFileNames = selectedFiles.join(', ');
-      const mockBRD = `# Business Requirements Document
+      // Get the actual file contents for selected files
+      const selectedFileContents = uploadedFiles
+        .filter(file => selectedFiles.includes(file.name))
+        .map(file => ({
+          name: file.name,
+          content: file.content
+        }));
 
-## Project Overview
-Analysis and conversion requirements for selected COBOL files: ${selectedFileNames}
+      // Call the BRD generation edge function
+      const brdResponse = await fetch('https://wmcgzozzsprofrfbkymz.supabase.co/functions/v1/generate-brd', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndtY2d6b3p6c3B2cndmcHNjbXl6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTIwNjA1OTAsImV4cCI6MjA2NzYzNjU5MH0.6IdB_GaC8dpJQ2iBwisbrvLPdPh1zWKLHKfApT07zZg`
+        },
+        body: JSON.stringify({
+          files: selectedFileContents
+        })
+      });
 
-## Selected Files for Conversion
-${selectedFiles.map(file => `- ${file}`).join('\n')}
+      if (!brdResponse.ok) {
+        const errorText = await brdResponse.text();
+        console.error('BRD generation failed:', errorText);
+        throw new Error(`Failed to generate BRD: ${brdResponse.status}`);
+      }
 
-## Business Logic Requirements
-
-### Core Functionality
-The selected COBOL files contain critical business logic that must be preserved during conversion:
-
-1. **Data Processing Rules**
-   - Input validation and data integrity checks
-   - Business calculation algorithms
-   - Output formatting requirements
-
-2. **File Dependencies**
-   ${dependencyAnalysis?.dependencies.filter(dep => 
-     selectedFiles.includes(dep.fromFile) || selectedFiles.includes(dep.toFile)
-   ).map(dep => `   - ${dep.fromFile} → ${dep.toFile}: ${dep.description}`).join('\n') || '   - No dependencies found for selected files'}
-
-3. **Conversion Requirements**
-   - Target Language: ${targetLanguage}
-   - Maintain existing business logic
-   - Ensure data integrity
-   - Preserve performance characteristics
-
-## Technical Specifications
-
-### Input Requirements
-- File format validation
-- Data type conversions
-- Error handling mechanisms
-
-### Processing Logic
-- Core business calculations
-- Validation routines
-- Data transformation rules
-
-### Output Requirements
-- Result formatting
-- Error reporting
-- Audit trail maintenance
-
-## Success Criteria
-1. All selected files converted successfully
-2. Business logic preserved
-3. Performance maintained
-4. Error handling implemented
-5. Testing completed successfully
-
----
-Generated on ${new Date().toLocaleDateString()} for ${selectedFiles.length} selected file(s)`;
-
-      setBusinessLogic(mockBRD);
+      const brdData = await brdResponse.json();
+      setBusinessLogic(brdData.brd);
 
       // Brief delay for user feedback
       await new Promise(resolve => setTimeout(resolve, 1000));
@@ -110,6 +80,7 @@ Generated on ${new Date().toLocaleDateString()} for ${selectedFiles.length} sele
         description: "Creating algorithmic representation..."
       });
 
+      const selectedFileNames = selectedFiles.join(', ');
       const mockPseudoCode = `PSEUDO CODE for ${selectedFiles.length} selected COBOL files:
 
 Selected Files: ${selectedFileNames}
