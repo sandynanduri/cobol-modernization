@@ -12,28 +12,40 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+  console.log('BRD function called with method:', req.method);
+  
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { files } = await req.json() as { files: FileData[] };
+    console.log('Parsing request body...');
+    const requestBody = await req.text();
+    console.log('Request body:', requestBody);
+    
+    const { files } = JSON.parse(requestBody) as { files: FileData[] };
 
     if (!files || files.length === 0) {
+      console.error('No files provided in request');
       return new Response(
         JSON.stringify({ error: 'No files provided' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
+    console.log('Files received:', files.length);
+
     const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
     if (!openAIApiKey) {
+      console.error('OpenAI API key not found in environment');
       return new Response(
         JSON.stringify({ error: 'OpenAI API key not configured' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    console.log('OpenAI API key found, creating prompt...');
 
     // Create the detailed prompt with actual COBOL content
     const cobolContent = files.map(file => `
@@ -95,6 +107,8 @@ Finally, ensure the output is **detailed enough that a business analyst, develop
 
 Begin your **deep and accurate analysis now**.`;
 
+    console.log('Calling OpenAI API...');
+
     // Call OpenAI API
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -116,17 +130,23 @@ Begin your **deep and accurate analysis now**.`;
       }),
     });
 
+    console.log('OpenAI API response status:', response.status);
+
     if (!response.ok) {
       const errorData = await response.text();
-      console.error('OpenAI API error:', errorData);
+      console.error('OpenAI API error:', response.status, errorData);
       return new Response(
-        JSON.stringify({ error: 'Failed to generate BRD' }),
+        JSON.stringify({ error: `OpenAI API error: ${response.status} - ${errorData}` }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     const data = await response.json();
+    console.log('OpenAI API success, extracting BRD...');
+    
     const brd = data.choices[0].message.content;
+
+    console.log('BRD generated successfully, returning response');
 
     return new Response(
       JSON.stringify({ 
@@ -140,7 +160,7 @@ Begin your **deep and accurate analysis now**.`;
   } catch (error) {
     console.error('Error in generate-brd function:', error);
     return new Response(
-      JSON.stringify({ error: error.message || 'Internal server error' }),
+      JSON.stringify({ error: `Internal error: ${error.message}` }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
