@@ -96,111 +96,80 @@ const VCSConnector: React.FC = () => {
     setIsConnecting(true);
 
     try {
-      // Mock API call - in a real implementation, this would use the appropriate VCS API
-      // Generate mock repository structure with both COBOL and other files
-      const allMockFiles: VCSFile[] = [
-        {
-          name: repoInfo.provider === 'Bitbucket' ? 'accounting.cbl' : 'payroll.cbl',
-          path: repoInfo.provider === 'Bitbucket' ? 'src/accounting.cbl' : 'src/payroll.cbl',
-          content: `       IDENTIFICATION DIVISION.
-       PROGRAM-ID. ${repoInfo.provider === 'Bitbucket' ? 'ACCOUNTING' : 'PAYROLL'}.
-       
-       DATA DIVISION.
-       WORKING-STORAGE SECTION.
-       01 ${repoInfo.provider === 'Bitbucket' ? 'ACCOUNT-RECORD' : 'EMPLOYEE-RECORD'}.
-          05 ${repoInfo.provider === 'Bitbucket' ? 'ACC-ID' : 'EMP-ID'}       PIC 9(5).
-          05 ${repoInfo.provider === 'Bitbucket' ? 'ACC-NAME' : 'EMP-NAME'}     PIC X(30).
-          05 ${repoInfo.provider === 'Bitbucket' ? 'ACC-BALANCE' : 'EMP-SALARY'}   PIC 9(7)V99.
-       
-       PROCEDURE DIVISION.
-       MAIN-PARA.
-           DISPLAY "${repoInfo.provider === 'Bitbucket' ? 'ACCOUNTING' : 'PAYROLL'} SYSTEM STARTED".
-           PERFORM ${repoInfo.provider === 'Bitbucket' ? 'CALCULATE-BALANCE' : 'CALCULATE-PAY'}.
-           STOP RUN.
-       
-       ${repoInfo.provider === 'Bitbucket' ? 'CALCULATE-BALANCE' : 'CALCULATE-PAY'}.
-           ${repoInfo.provider === 'Bitbucket' ? 'COMPUTE ACC-BALANCE = ACC-BALANCE * 1.02' : 'COMPUTE EMP-SALARY = EMP-SALARY * 1.05'}.
-           DISPLAY "${repoInfo.provider === 'Bitbucket' ? 'Updated balance: " ACC-BALANCE' : 'Updated salary: " EMP-SALARY'}.`,
-          size: repoInfo.provider === 'Bitbucket' ? 567 : 542,
-          type: 'cobol'
-        },
-        {
-          name: 'inventory.cbl',
-          path: 'modules/inventory.cbl',
-          content: `       IDENTIFICATION DIVISION.
-       PROGRAM-ID. INVENTORY.
-       
-       DATA DIVISION.
-       WORKING-STORAGE SECTION.
-       01 ITEM-RECORD.
-          05 ITEM-CODE    PIC X(10).
-          05 ITEM-QTY     PIC 9(5).
-          05 ITEM-PRICE   PIC 9(5)V99.
-       
-       PROCEDURE DIVISION.
-       MAIN-PARA.
-           DISPLAY "INVENTORY MANAGEMENT".
-           PERFORM UPDATE-STOCK.
-           STOP RUN.
-       
-       UPDATE-STOCK.
-           ADD 1 TO ITEM-QTY.
-           DISPLAY "Stock updated: " ITEM-QTY.`,
-          size: 398,
-          type: 'cobol'
-        },
-        {
-          name: 'customer.cbl',
-          path: 'legacy/customer.cbl',
-          content: `       IDENTIFICATION DIVISION.
-       PROGRAM-ID. CUSTOMER.
-       
-       DATA DIVISION.
-       WORKING-STORAGE SECTION.
-       01 CUSTOMER-RECORD.
-          05 CUST-ID      PIC 9(6).
-          05 CUST-NAME    PIC X(25).
-          05 CUST-STATUS  PIC X(10).
-       
-       PROCEDURE DIVISION.
-       MAIN-PARA.
-           DISPLAY "CUSTOMER MANAGEMENT SYSTEM".
-           STOP RUN.`,
-          size: 312,
-          type: 'cobol'
-        },
-        {
-          name: 'README.md',
-          path: 'README.md',
-          content: '# Legacy COBOL System\n\nThis repository contains legacy COBOL programs...',
-          size: 156,
-          type: 'other'
-        },
-        {
-          name: 'build.xml',
-          path: 'build.xml',
-          content: '<?xml version="1.0"?>\n<project name="cobol-legacy">...</project>',
-          size: 245,
-          type: 'other'
-        },
-        {
-          name: 'config.properties',
-          path: 'config/config.properties',
-          content: 'database.host=localhost\ndatabase.port=5432',
-          size: 78,
-          type: 'other'
-        }
-      ];
+      // Only support GitHub for now
+      if (repoInfo.provider !== 'GitHub') {
+        toast({
+          title: "Provider Not Supported",
+          description: "Currently only GitHub repositories are supported",
+          variant: "destructive"
+        });
+        return;
+      }
 
-      const cobolFiles = allMockFiles.filter(f => f.type === 'cobol');
-      const otherFiles = allMockFiles.filter(f => f.type === 'other');
+      // Fetch repository content from GitHub API
+      const apiUrl = `https://api.github.com/repos/${repoInfo.owner}/${repoInfo.repo}/contents`;
+      const response = await fetch(apiUrl);
+      
+      if (!response.ok) {
+        throw new Error(`GitHub API error: ${response.status}`);
+      }
+
+      const contents = await response.json();
+      const allFiles: VCSFile[] = [];
+
+      // Process files recursively
+      const processContents = async (items: any[], basePath = '') => {
+        for (const item of items) {
+          if (item.type === 'file') {
+            const fileExtension = item.name.split('.').pop()?.toLowerCase();
+            const isCobol = isCobolFile(item.name);
+            
+            // Only fetch content for COBOL files or small non-binary files
+            let content = '';
+            if (isCobol || (item.size < 10000 && !item.name.match(/\.(jpg|jpeg|png|gif|zip|tar|gz|exe|bin)$/i))) {
+              try {
+                const fileResponse = await fetch(item.download_url);
+                if (fileResponse.ok) {
+                  content = await fileResponse.text();
+                }
+              } catch (e) {
+                console.warn(`Failed to fetch content for ${item.name}`);
+              }
+            }
+
+            allFiles.push({
+              name: item.name,
+              path: item.path,
+              content,
+              size: item.size,
+              type: isCobol ? 'cobol' : 'other'
+            });
+          } else if (item.type === 'dir') {
+            // Recursively fetch directory contents
+            try {
+              const dirResponse = await fetch(item.url);
+              if (dirResponse.ok) {
+                const dirContents = await dirResponse.json();
+                await processContents(dirContents, item.path);
+              }
+            } catch (e) {
+              console.warn(`Failed to fetch directory ${item.name}`);
+            }
+          }
+        }
+      };
+
+      await processContents(contents);
+
+      const cobolFiles = allFiles.filter(f => f.type === 'cobol');
+      const otherFiles = allFiles.filter(f => f.type === 'other');
 
       const repositoryData: RepositoryInfo = {
         provider: repoInfo.provider,
         owner: repoInfo.owner,
         repo: repoInfo.repo,
         fullUrl: repoInfo.fullUrl,
-        totalFiles: allMockFiles.length,
+        totalFiles: allFiles.length,
         cobolFiles,
         otherFiles
       };
@@ -213,6 +182,7 @@ const VCSConnector: React.FC = () => {
         description: `Found ${cobolFiles.length} COBOL files in ${repoInfo.provider} repository`
       });
     } catch (error) {
+      console.error('Repository fetch error:', error);
       toast({
         title: "Connection Failed",
         description: "Unable to connect to the repository. Please check the URL and try again.",
