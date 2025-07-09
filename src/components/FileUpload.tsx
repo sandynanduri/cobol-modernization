@@ -127,13 +127,6 @@ const FileUpload: React.FC = () => {
                 <div className="flex-1">
                   <div className="flex items-center space-x-2 mb-1">
                     <p className="font-medium">{file.name}</p>
-                    <Badge 
-                      variant={getFileType(file.name).variant}
-                      className="text-xs flex items-center space-x-1"
-                    >
-                      <Tag className="h-3 w-3" />
-                      <span>{getFileType(file.name).type}</span>
-                    </Badge>
                   </div>
                   <p className="text-sm text-muted-foreground">
                     {(file.size / 1024).toFixed(1)} KB • Uploaded {file.uploadedAt.toLocaleTimeString()}
