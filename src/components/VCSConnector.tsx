@@ -3,11 +3,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useAppStore } from '@/store/appStore';
-import { GitBranch, FolderOpen, AlertCircle, HelpCircle } from 'lucide-react';
+import { GitBranch, FolderOpen, AlertCircle, HelpCircle, FileText, Download, Check } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
 interface VCSFile {
@@ -15,15 +15,26 @@ interface VCSFile {
   path: string;
   content: string;
   size: number;
+  type: 'cobol' | 'other';
+}
+
+interface RepositoryInfo {
+  provider: string;
+  owner: string;
+  repo: string;
+  fullUrl: string;
+  totalFiles: number;
+  cobolFiles: VCSFile[];
+  otherFiles: VCSFile[];
 }
 
 const VCSConnector: React.FC = () => {
   const { addUploadedFile } = useAppStore();
   const [repoUrl, setRepoUrl] = useState('');
   const [isConnecting, setIsConnecting] = useState(false);
-  const [availableFiles, setAvailableFiles] = useState<VCSFile[]>([]);
-  const [selectedFile, setSelectedFile] = useState<string>('');
+  const [repositoryInfo, setRepositoryInfo] = useState<RepositoryInfo | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
 
   const detectVCSProvider = (url: string) => {
     if (url.includes('github.com')) return 'GitHub';
@@ -57,6 +68,11 @@ const VCSConnector: React.FC = () => {
     return null;
   };
 
+  const isCobolFile = (filename: string): boolean => {
+    const cobolExtensions = ['.cbl', '.cob', '.cobol', '.CBL', '.COB', '.COBOL'];
+    return cobolExtensions.some(ext => filename.endsWith(ext));
+  };
+
   const fetchRepositoryFiles = async () => {
     if (!repoUrl.trim()) {
       toast({
@@ -81,8 +97,8 @@ const VCSConnector: React.FC = () => {
 
     try {
       // Mock API call - in a real implementation, this would use the appropriate VCS API
-      // For demo purposes, we'll simulate finding COBOL files based on the provider
-      const mockFiles: VCSFile[] = [
+      // Generate mock repository structure with both COBOL and other files
+      const allMockFiles: VCSFile[] = [
         {
           name: repoInfo.provider === 'Bitbucket' ? 'accounting.cbl' : 'payroll.cbl',
           path: repoInfo.provider === 'Bitbucket' ? 'src/accounting.cbl' : 'src/payroll.cbl',
@@ -105,7 +121,8 @@ const VCSConnector: React.FC = () => {
        ${repoInfo.provider === 'Bitbucket' ? 'CALCULATE-BALANCE' : 'CALCULATE-PAY'}.
            ${repoInfo.provider === 'Bitbucket' ? 'COMPUTE ACC-BALANCE = ACC-BALANCE * 1.02' : 'COMPUTE EMP-SALARY = EMP-SALARY * 1.05'}.
            DISPLAY "${repoInfo.provider === 'Bitbucket' ? 'Updated balance: " ACC-BALANCE' : 'Updated salary: " EMP-SALARY'}.`,
-          size: repoInfo.provider === 'Bitbucket' ? 567 : 542
+          size: repoInfo.provider === 'Bitbucket' ? 567 : 542,
+          type: 'cobol'
         },
         {
           name: 'inventory.cbl',
@@ -129,16 +146,71 @@ const VCSConnector: React.FC = () => {
        UPDATE-STOCK.
            ADD 1 TO ITEM-QTY.
            DISPLAY "Stock updated: " ITEM-QTY.`,
-          size: 398
+          size: 398,
+          type: 'cobol'
+        },
+        {
+          name: 'customer.cbl',
+          path: 'legacy/customer.cbl',
+          content: `       IDENTIFICATION DIVISION.
+       PROGRAM-ID. CUSTOMER.
+       
+       DATA DIVISION.
+       WORKING-STORAGE SECTION.
+       01 CUSTOMER-RECORD.
+          05 CUST-ID      PIC 9(6).
+          05 CUST-NAME    PIC X(25).
+          05 CUST-STATUS  PIC X(10).
+       
+       PROCEDURE DIVISION.
+       MAIN-PARA.
+           DISPLAY "CUSTOMER MANAGEMENT SYSTEM".
+           STOP RUN.`,
+          size: 312,
+          type: 'cobol'
+        },
+        {
+          name: 'README.md',
+          path: 'README.md',
+          content: '# Legacy COBOL System\n\nThis repository contains legacy COBOL programs...',
+          size: 156,
+          type: 'other'
+        },
+        {
+          name: 'build.xml',
+          path: 'build.xml',
+          content: '<?xml version="1.0"?>\n<project name="cobol-legacy">...</project>',
+          size: 245,
+          type: 'other'
+        },
+        {
+          name: 'config.properties',
+          path: 'config/config.properties',
+          content: 'database.host=localhost\ndatabase.port=5432',
+          size: 78,
+          type: 'other'
         }
       ];
 
-      setAvailableFiles(mockFiles);
+      const cobolFiles = allMockFiles.filter(f => f.type === 'cobol');
+      const otherFiles = allMockFiles.filter(f => f.type === 'other');
+
+      const repositoryData: RepositoryInfo = {
+        provider: repoInfo.provider,
+        owner: repoInfo.owner,
+        repo: repoInfo.repo,
+        fullUrl: repoInfo.fullUrl,
+        totalFiles: allMockFiles.length,
+        cobolFiles,
+        otherFiles
+      };
+
+      setRepositoryInfo(repositoryData);
       setIsDialogOpen(true);
       
       toast({
         title: "Repository Connected",
-        description: `Found ${mockFiles.length} COBOL files in ${repoInfo.provider} repository`
+        description: `Found ${cobolFiles.length} COBOL files in ${repoInfo.provider} repository`
       });
     } catch (error) {
       toast({
@@ -151,27 +223,39 @@ const VCSConnector: React.FC = () => {
     }
   };
 
-  const importFile = () => {
-    const file = availableFiles.find(f => f.path === selectedFile);
-    if (!file) return;
+  const importAllCobolFiles = async () => {
+    if (!repositoryInfo || repositoryInfo.cobolFiles.length === 0) return;
 
-    addUploadedFile({
-      id: Date.now().toString(),
-      name: file.name,
-      type: 'text/plain',
-      size: file.size,
-      content: file.content,
-      uploadedAt: new Date()
-    });
+    setIsImporting(true);
 
-    setIsDialogOpen(false);
-    setSelectedFile('');
-    
-    const provider = detectVCSProvider(repoUrl);
-    toast({
-      title: "File Imported",
-      description: `${file.name} has been imported from ${provider}`
-    });
+    try {
+      // Import all COBOL files at once
+      repositoryInfo.cobolFiles.forEach((file, index) => {
+        addUploadedFile({
+          id: `${Date.now()}-${index}`,
+          name: file.name,
+          type: 'text/plain',
+          size: file.size,
+          content: file.content,
+          uploadedAt: new Date()
+        });
+      });
+
+      setIsDialogOpen(false);
+      
+      toast({
+        title: "Files Imported Successfully",
+        description: `Imported ${repositoryInfo.cobolFiles.length} COBOL files from ${repositoryInfo.provider}`
+      });
+    } catch (error) {
+      toast({
+        title: "Import Failed",
+        description: "Failed to import COBOL files. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsImporting(false);
+    }
   };
 
   const getProviderIcon = () => {
@@ -235,60 +319,122 @@ const VCSConnector: React.FC = () => {
       </Card>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Select COBOL File</DialogTitle>
+            <DialogTitle>Repository Overview</DialogTitle>
             <DialogDescription>
-              Choose a COBOL file from the repository to import
+              {repositoryInfo && `${repositoryInfo.provider} • ${repositoryInfo.owner}/${repositoryInfo.repo}`}
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
-            {availableFiles.length > 0 ? (
-              <>
-                <div className="space-y-2">
-                  <Label>Available Files</Label>
-                  <Select value={selectedFile} onValueChange={setSelectedFile}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a file" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {availableFiles.map((file) => (
-                        <SelectItem key={file.path} value={file.path}>
-                          <div className="flex items-center justify-between w-full">
-                            <span>{file.name}</span>
-                            <span className="text-sm text-muted-foreground ml-2">
-                              {(file.size / 1024).toFixed(1)} KB
-                            </span>
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+          
+          {repositoryInfo && (
+            <div className="space-y-6">
+              {/* Repository Stats */}
+              <div className="flex items-center space-x-4 p-4 bg-muted/30 rounded-lg">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-primary">{repositoryInfo.cobolFiles.length}</div>
+                  <div className="text-sm text-muted-foreground">COBOL Files</div>
                 </div>
-                <div className="flex space-x-2">
-                  <Button 
-                    onClick={importFile} 
-                    disabled={!selectedFile}
-                    className="flex-1"
-                  >
-                    Import File
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    onClick={() => setIsDialogOpen(false)}
-                    className="flex-1"
-                  >
-                    Cancel
-                  </Button>
+                <div className="text-center">
+                  <div className="text-2xl font-bold">{repositoryInfo.totalFiles}</div>
+                  <div className="text-sm text-muted-foreground">Total Files</div>
                 </div>
-              </>
-            ) : (
-              <div className="text-center py-4">
-                <AlertCircle className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-                <p className="text-muted-foreground">No COBOL files found in this repository</p>
               </div>
-            )}
-          </div>
+
+              {repositoryInfo.cobolFiles.length > 0 ? (
+                <>
+                  {/* COBOL Files Section */}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <h3 className="font-semibold flex items-center space-x-2">
+                        <FileText className="h-4 w-4" />
+                        <span>COBOL Files to Import</span>
+                        <Badge variant="secondary">{repositoryInfo.cobolFiles.length}</Badge>
+                      </h3>
+                    </div>
+                    <div className="space-y-2 max-h-40 overflow-y-auto">
+                      {repositoryInfo.cobolFiles.map((file) => (
+                        <div key={file.path} className="flex items-center justify-between p-3 border rounded-lg bg-green-50 border-green-200">
+                          <div className="flex items-center space-x-3">
+                            <Check className="h-4 w-4 text-green-600" />
+                            <div>
+                              <div className="font-medium text-sm">{file.name}</div>
+                              <div className="text-xs text-muted-foreground">{file.path}</div>
+                            </div>
+                          </div>
+                          <Badge variant="outline" className="text-xs">
+                            {(file.size / 1024).toFixed(1)} KB
+                          </Badge>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Other Files Section */}
+                  {repositoryInfo.otherFiles.length > 0 && (
+                    <div className="space-y-3">
+                      <h3 className="font-semibold flex items-center space-x-2">
+                        <FolderOpen className="h-4 w-4" />
+                        <span>Other Files</span>
+                        <Badge variant="outline">{repositoryInfo.otherFiles.length}</Badge>
+                      </h3>
+                      <div className="space-y-2 max-h-32 overflow-y-auto">
+                        {repositoryInfo.otherFiles.map((file) => (
+                          <div key={file.path} className="flex items-center justify-between p-2 border rounded bg-muted/20">
+                            <div className="flex items-center space-x-3">
+                              <FileText className="h-3 w-3 text-muted-foreground" />
+                              <div>
+                                <div className="text-sm">{file.name}</div>
+                                <div className="text-xs text-muted-foreground">{file.path}</div>
+                              </div>
+                            </div>
+                            <Badge variant="outline" className="text-xs">
+                              {(file.size / 1024).toFixed(1)} KB
+                            </Badge>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Action Buttons */}
+                  <div className="flex space-x-3 pt-4 border-t">
+                    <Button 
+                      onClick={importAllCobolFiles} 
+                      disabled={isImporting}
+                      className="flex-1"
+                    >
+                      {isImporting ? (
+                        <>
+                          <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                          Importing...
+                        </>
+                      ) : (
+                        <>
+                          <Download className="mr-2 h-4 w-4" />
+                          Import All COBOL Files ({repositoryInfo.cobolFiles.length})
+                        </>
+                      )}
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      onClick={() => setIsDialogOpen(false)}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </>
+              ) : (
+                <div className="text-center py-8">
+                  <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <h3 className="font-semibold mb-2">No COBOL Files Found</h3>
+                  <p className="text-muted-foreground text-sm">
+                    This repository doesn't contain any files with COBOL extensions (.cbl, .cob, .cobol)
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>
