@@ -50,6 +50,18 @@ export interface ConversionSession {
   };
 }
 
+export interface DependencyAnalysis {
+  hasDependencies: boolean;
+  summary: string;
+  dependencies: Array<{
+    fromFile: string;
+    toFile: string;
+    dependencyType: string;
+    description: string;
+  }>;
+  recommendations: string[];
+}
+
 interface AppState {
   // Current session
   uploadedFiles: UploadedFile[];
@@ -59,6 +71,8 @@ interface AppState {
   pseudoCode: string;
   convertedCode: string;
   currentStep: 'upload' | 'analyze' | 'convert' | 'dashboard';
+  dependencyAnalysis: DependencyAnalysis | null;
+  isAnalyzingDependencies: boolean;
   
   // Statistics
   sessions: ConversionSession[];
@@ -82,6 +96,8 @@ interface AppState {
   addSession: (session: Omit<ConversionSession, 'id' | 'createdAt'>) => void;
   updateSessionStatus: (sessionId: string, status: ConversionSession['status']) => void;
   resetCurrentSession: () => void;
+  setDependencyAnalysis: (analysis: DependencyAnalysis | null) => void;
+  setIsAnalyzingDependencies: (isAnalyzing: boolean) => void;
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -93,6 +109,8 @@ export const useAppStore = create<AppState>((set, get) => ({
   pseudoCode: '',
   convertedCode: '',
   currentStep: 'upload',
+  dependencyAnalysis: null,
+  isAnalyzingDependencies: false,
   
   // Statistics
   sessions: [],
@@ -157,6 +175,10 @@ export const useAppStore = create<AppState>((set, get) => ({
     businessLogic: '',
     pseudoCode: '',
     convertedCode: '',
-    currentStep: 'upload'
-  })
+    currentStep: 'upload',
+    dependencyAnalysis: null,
+    isAnalyzingDependencies: false
+  }),
+  setDependencyAnalysis: (analysis) => set({ dependencyAnalysis: analysis }),
+  setIsAnalyzingDependencies: (isAnalyzing) => set({ isAnalyzingDependencies: isAnalyzing })
 }));

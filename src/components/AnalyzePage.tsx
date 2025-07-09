@@ -4,12 +4,23 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useAppStore } from '@/store/appStore';
-import { ArrowLeft, ArrowRight, FileText, Zap, CheckCircle, Code2, Database, ExternalLink, ChevronDown, ChevronRight } from 'lucide-react';
+import { ArrowLeft, ArrowRight, FileText, Zap, CheckCircle, Code2, Database, ExternalLink, ChevronDown, ChevronRight, Loader2, AlertTriangle, FileCheck } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { analyzeCobolFile } from '@/lib/cobolAnalyzer';
+import { supabase } from '@/integrations/supabase/client';
 
 const AnalyzePage: React.FC = () => {
-  const { uploadedFiles, targetLanguage, setCurrentStep, setBusinessLogic, updateUploadedFile } = useAppStore();
+  const { 
+    uploadedFiles, 
+    targetLanguage, 
+    setCurrentStep, 
+    setBusinessLogic, 
+    updateUploadedFile,
+    dependencyAnalysis,
+    isAnalyzingDependencies,
+    setDependencyAnalysis,
+    setIsAnalyzingDependencies
+  } = useAppStore();
   const [dependenciesOpen, setDependenciesOpen] = React.useState(false);
 
   useEffect(() => {
@@ -21,7 +32,48 @@ const AnalyzePage: React.FC = () => {
     });
   }, [uploadedFiles, updateUploadedFile]);
 
-  const handleAnalyze = () => {
+  const analyzeDependencies = async () => {
+    if (uploadedFiles.length === 0) return;
+    
+    setIsAnalyzingDependencies(true);
+    try {
+      const files = uploadedFiles.map(file => ({
+        name: file.name,
+        content: file.content || ''
+      }));
+
+      const { data, error } = await supabase.functions.invoke('analyze-dependencies', {
+        body: { files }
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      setDependencyAnalysis(data);
+      
+      toast({
+        title: "Dependency Analysis Complete",
+        description: data.hasDependencies 
+          ? `Found ${data.dependencies.length} dependencies between files`
+          : "No dependencies found between files"
+      });
+    } catch (error) {
+      console.error('Error analyzing dependencies:', error);
+      toast({
+        title: "Analysis Error",
+        description: "Failed to analyze dependencies. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsAnalyzingDependencies(false);
+    }
+  };
+
+  const handleAnalyze = async () => {
+    // First analyze dependencies
+    await analyzeDependencies();
+    
     const mockBusinessLogic = `
 # Business Logic Analysis for ${uploadedFiles.length} COBOL Files
 
@@ -212,94 +264,110 @@ ${uploadedFiles.map((file, index) => `${index + 1}. ${file.name} (${file.cobolAn
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
             <Database className="h-5 w-5" />
-            <span>Dependencies Analysis</span>
+            <span>AI-Powered Dependencies Analysis</span>
           </CardTitle>
+          <CardDescription>
+            OpenAI analyzes your COBOL files to identify inter-file dependencies
+          </CardDescription>
         </CardHeader>
-        <CardContent>
-          <Collapsible open={dependenciesOpen} onOpenChange={setDependenciesOpen}>
-            <CollapsibleTrigger asChild>
-              <Button variant="ghost" className="w-full justify-between p-0 h-auto">
-                <span className="text-left">View Aggregated Dependencies</span>
-                {dependenciesOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+        <CardContent className="space-y-4">
+          {uploadedFiles.length > 1 && (
+            <div className="flex items-center gap-2 mb-4">
+              <Button 
+                onClick={analyzeDependencies}
+                disabled={isAnalyzingDependencies}
+                size="sm"
+              >
+                {isAnalyzingDependencies ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Analyzing Dependencies...
+                  </>
+                ) : (
+                  <>
+                    <Zap className="h-4 w-4 mr-2" />
+                    Analyze Dependencies
+                  </>
+                )}
               </Button>
-            </CollapsibleTrigger>
-            
-            <CollapsibleContent className="mt-4 space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <div className="flex items-center space-x-2 mb-3">
-                    <FileText className="h-4 w-4 text-blue-600" />
-                    <h4 className="font-semibold">COPY Statements</h4>
-                  </div>
-                  {aggregatedDependencies.copyStatements.length ? (
-                    <div className="space-y-1">
-                      {aggregatedDependencies.copyStatements.map((copy, index) => (
-                        <div key={index} className="flex items-center space-x-2">
-                          <Badge variant="outline" className="text-xs">{copy}</Badge>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-sm text-muted-foreground">No COPY statements found</p>
-                  )}
-                </div>
+            </div>
+          )}
 
-                <div>
-                  <div className="flex items-center space-x-2 mb-3">
-                    <ExternalLink className="h-4 w-4 text-purple-600" />
-                    <h4 className="font-semibold">CALL Statements</h4>
-                  </div>
-                  {aggregatedDependencies.callStatements.length ? (
-                    <div className="space-y-1">
-                      {aggregatedDependencies.callStatements.map((call, index) => (
-                        <div key={index} className="flex items-center space-x-2">
-                          <Badge variant="outline" className="text-xs">{call}</Badge>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-sm text-muted-foreground">No CALL statements found</p>
-                  )}
-                </div>
+          {uploadedFiles.length === 1 && (
+            <div className="text-center p-4 border rounded-lg bg-muted/50">
+              <FileCheck className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+              <p className="text-sm text-muted-foreground">
+                Upload multiple files to analyze dependencies between them
+              </p>
+            </div>
+          )}
 
-                <div>
-                  <div className="flex items-center space-x-2 mb-3">
-                    <Database className="h-4 w-4 text-green-600" />
-                    <h4 className="font-semibold">File Assignments</h4>
-                  </div>
-                  {aggregatedDependencies.fileAssignments.length ? (
-                    <div className="space-y-1">
-                      {aggregatedDependencies.fileAssignments.map((file, index) => (
-                        <div key={index} className="flex items-center space-x-2">
-                          <Badge variant="outline" className="text-xs">{file}</Badge>
-                        </div>
-                      ))}
-                    </div>
+          {dependencyAnalysis && (
+            <div className="space-y-4">
+              {/* Analysis Summary */}
+              <div className={`p-4 rounded-lg border ${
+                dependencyAnalysis.hasDependencies 
+                  ? 'bg-orange-50 border-orange-200' 
+                  : 'bg-green-50 border-green-200'
+              }`}>
+                <div className="flex items-center space-x-2 mb-2">
+                  {dependencyAnalysis.hasDependencies ? (
+                    <AlertTriangle className="h-5 w-5 text-orange-600" />
                   ) : (
-                    <p className="text-sm text-muted-foreground">No file assignments found</p>
+                    <FileCheck className="h-5 w-5 text-green-600" />
                   )}
+                  <h4 className="font-semibold">
+                    {dependencyAnalysis.hasDependencies ? 'Dependencies Found' : 'No Dependencies'}
+                  </h4>
                 </div>
-
-                <div>
-                  <div className="flex items-center space-x-2 mb-3">
-                    <Zap className="h-4 w-4 text-orange-600" />
-                    <h4 className="font-semibold">Database Connections</h4>
-                  </div>
-                  {aggregatedDependencies.databaseConnections.length ? (
-                    <div className="space-y-1">
-                      {aggregatedDependencies.databaseConnections.map((db, index) => (
-                        <div key={index} className="flex items-center space-x-2">
-                          <Badge variant="outline" className="text-xs">{db}</Badge>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-sm text-muted-foreground">No database connections found</p>
-                  )}
-                </div>
+                <p className="text-sm">{dependencyAnalysis.summary}</p>
               </div>
-            </CollapsibleContent>
-          </Collapsible>
+
+              {/* Dependencies List */}
+              {dependencyAnalysis.hasDependencies && dependencyAnalysis.dependencies.length > 0 && (
+                <div className="space-y-3">
+                  <h5 className="font-medium text-sm">Identified Dependencies:</h5>
+                  {dependencyAnalysis.dependencies.map((dep, index) => (
+                    <div key={index} className="border rounded-lg p-3 space-y-2">
+                      <div className="flex items-center space-x-2">
+                        <Badge variant="outline" className="text-xs">
+                          {dep.dependencyType}
+                        </Badge>
+                        <span className="text-sm font-medium">
+                          {dep.fromFile} → {dep.toFile}
+                        </span>
+                      </div>
+                      <p className="text-sm text-muted-foreground">{dep.description}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Recommendations */}
+              {dependencyAnalysis.recommendations.length > 0 && (
+                <div className="space-y-2">
+                  <h5 className="font-medium text-sm">Conversion Recommendations:</h5>
+                  <ul className="space-y-1">
+                    {dependencyAnalysis.recommendations.map((rec, index) => (
+                      <li key={index} className="text-sm text-muted-foreground flex items-start space-x-2">
+                        <span className="text-primary">•</span>
+                        <span>{rec}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
+
+          {!dependencyAnalysis && !isAnalyzingDependencies && uploadedFiles.length > 1 && (
+            <div className="text-center p-4 border rounded-lg bg-muted/50">
+              <Database className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+              <p className="text-sm text-muted-foreground">
+                Click "Analyze Dependencies" to check for inter-file dependencies using AI
+              </p>
+            </div>
+          )}
         </CardContent>
       </Card>
 
